@@ -1,0 +1,7 @@
+<h1>Podcasts</h1>
+
+<ul>
+{% for podcast in podcast_list %}
+<li><a href="{% url 'podcasts:detail' podcast.title %}">{{ podcast.name }}</a></li>
+{% endfor %}
+</ul>

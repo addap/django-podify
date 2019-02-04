@@ -1,0 +1,18 @@
+url scheme
+
+podify.local
+    domain
+    
+/
+    main site: list of subscribed podcasts, number of new episodes
+
+/<podcast_name>
+    podcast detail view, name, url etc, list of episodes with state and length etc
+
+/<podcast_name>/rss
+    podcast rss feed
+
+
+Since I have very limited storage space I only download episodes onto the raspberry pie temporarily. In order to signal to the django app which episodes I'd like to download onto my phone soon I use empty sentinel files which the episode url in the feed points to.
+When the app registers a download of such a sentinel file it can download the actual episode off YT.
+When the download is finished the app sends me a telegram message over their web api. Then I can redownload the file in my podcatcher.
