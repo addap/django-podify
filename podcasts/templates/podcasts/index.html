@@ -2,6 +2,6 @@
 
 <ul>
 {% for podcast in podcast_list %}
-<li><a href="{% url 'podcasts:detail' podcast.title %}">{{ podcast.name }}</a></li>
+<li><a href="{% url 'podcasts:detail' podcast.slug %}">{{ podcast.name }}</a></li>
 {% endfor %}
 </ul>

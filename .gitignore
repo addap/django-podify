@@ -118,3 +118,6 @@ dmypy.json
 ### Custom rules
 # emacs temp files
 *~
+
+# pycharm directory
+.idea/
