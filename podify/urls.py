@@ -15,8 +15,11 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+from django.conf import settings
+from django.conf.urls.static import static
 
+# todo the + static(...) line is to be only used in production
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('podcasts.urls')),
-]
+] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

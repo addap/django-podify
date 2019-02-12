@@ -5,11 +5,16 @@ from podcasts.models import Podcast, Episode
 # Register your models here.
 class EpisodeInline(admin.TabularInline):
     model = Episode
+    fields = ['name', 'url', 'mp3', 'downloaded', ]
     extra = 0
 
 
 class PodcastAdmin(admin.ModelAdmin):
-    fields = ['name', 'podcast_type', 'url']
+    fieldsets = [
+        (None, {'fields': ['name', 'podcast_type', 'slug', ]}),
+        ('Metadata', {'fields': ['url', 'description', 'image', ]})
+    ]
+    prepopulated_fields = {'slug': ('name',)}
 
     inlines = [EpisodeInline]
     list_display = ('name', 'podcast_type')

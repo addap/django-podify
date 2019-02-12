@@ -6,6 +6,7 @@ app_name = 'podcasts'
 
 urlpatterns = [
     path('', views.index, name='index'),
-    path('<slug:slug>/', views.detail, name='detail'),
-    path('<slug:slug>/rss', views.rss, name='rss'),
+    path('<slug:slug>/', views.podcast_detail, name='podcast-detail'),
+    path('<slug:slug>/rss', views.podcast_rss, name='podcast-rss'),
+    path('<slug:slug>/ep/<int:episode_id>', views.episode_detail, name='episode-detail'),
 ]

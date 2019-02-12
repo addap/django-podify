@@ -25,7 +25,7 @@ SECRET_KEY = '02=i!+cdaxi(d%4db726k#lmq#yd7*%#-jjqa8xw6-e2ibb!+='
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -63,6 +63,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'django.template.context_processors.media',
             ],
         },
     },
@@ -119,3 +120,5 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/2.1/howto/static-files/
 
 STATIC_URL = '/static/'
+MEDIA_ROOT = '/home/adrian/programming/django-podify/media/'
+MEDIA_URL = '/media/'

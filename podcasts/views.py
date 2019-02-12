@@ -14,7 +14,7 @@ def index(request):
                   context={'podcast_list': podcast_list})
 
 
-def detail(request, slug):
+def podcast_detail(request, slug):
     template_name = 'podcasts/detail.html'
     podcast = get_object_or_404(Podcast, slug=slug)
     return render(request,
@@ -22,10 +22,14 @@ def detail(request, slug):
                   context={'podcast': podcast})
 
 
-def rss(request, slug):
+def podcast_rss(request, slug):
     podcast = get_object_or_404(Podcast, slug=slug)
-    rss_file = generate_from_podcast(podcast)
-    response = FileResponse(rss_file, as_attachment=True,
+    rss_text = generate_from_podcast(podcast)
+    # response = FileResponse(rss_text)
+    response = FileResponse(rss_text, as_attachment=True,
                             filename=f"{podcast.name}.rss", content_type='application/rss+xml; charset=UTF-8')
     return response
 
+
+def episode_detail(request, slug, episode_id):
+    pass

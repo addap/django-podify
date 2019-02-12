@@ -1,2 +1,5 @@
 <h1>{{ podcast.name }}</h1>
-<a href="{% url 'podcasts:rss' podcast.slug %}">RSS</a>
+{% if podcast.image %}
+<img src="{{ podcast.image.url }}"><br>
+{%  endif %}
+<a href="{% url 'podcasts:podcast-rss' podcast.slug %}">RSS</a>

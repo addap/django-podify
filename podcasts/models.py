@@ -1,4 +1,5 @@
 from django.db import models
+from datetime import date, timedelta
 
 
 # Create your models here.
@@ -17,16 +18,22 @@ class Podcast(models.Model):
         (YOUTUBE_PLAYLIST, 'YouTube Playlist'),
         (SINGLES, 'Single Videos'),
     )
+
     slug = models.CharField(max_length=40)
     name = models.CharField(max_length=40)
     podcast_type = models.CharField(max_length=3, choices=PODCAST_TYPE_CHOICES, default=YOUTUBE_PLAYLIST)
-    url = models.URLField()
+    url = models.URLField(blank=True)
+    description = models.TextField(blank=True)
+    image = models.ImageField(upload_to='thumbnails', blank=True)
 
     def __save__(self, *args, **kwargs):
         """When a podcast is saved for the first time we get the episode urls."""
         if self._state.adding is True:
             self.sync_podcast()
         super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.name
 
     def sync_podcast(self):
         if self.podcast_type == Podcast.YOUTUBE_PLAYLIST:
@@ -44,11 +51,22 @@ class Podcast(models.Model):
 
 
 class Episode(models.Model):
+    """Model for a podcast episode
+        name: name of the episode
+        url: url of the audio file from where to download it
+        downloaded: boolean whether we have downloaded the file to the server
+        mp3: the location of the mp3 file on the server
+    """
     name = models.CharField(max_length=40)
-    url  = models.URLField()
+    url = models.URLField()
     downloaded = models.BooleanField(default=False)
-    mp3_file = models.URLField()
+    mp3 = models.FileField(upload_to=None, blank=True)
+    pub_date = models.DateField(default=date.today, editable=False)
+    duration = models.DurationField(default=timedelta(), editable=False)
     
     # Foreign Key is associated podcast
     podcast = models.ForeignKey(Podcast, on_delete=models.CASCADE)
+
+    def __str__(self):
+        return self.name
 
