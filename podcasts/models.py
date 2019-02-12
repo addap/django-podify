@@ -1,5 +1,10 @@
 from django.db import models
-from datetime import date, timedelta
+from django.core.files.base import ContentFile
+from datetime import timedelta, datetime
+from pafy import get_playlist2
+import requests
+
+YOUTUBE_BASE = 'https://www.youtube.com/watch?v='
 
 
 # Create your models here.
@@ -19,18 +24,22 @@ class Podcast(models.Model):
         (SINGLES, 'Single Videos'),
     )
 
-    slug = models.CharField(max_length=40)
-    name = models.CharField(max_length=40)
+    name = models.CharField(max_length=100)
+    slug = models.CharField(max_length=100, unique=True)
     podcast_type = models.CharField(max_length=3, choices=PODCAST_TYPE_CHOICES, default=YOUTUBE_PLAYLIST)
     url = models.URLField(blank=True)
     description = models.TextField(blank=True)
     image = models.ImageField(upload_to='thumbnails', blank=True)
 
-    def __save__(self, *args, **kwargs):
+    def save(self, *args, **kwargs):
         """When a podcast is saved for the first time we get the episode urls."""
+        first_save = False
         if self._state.adding is True:
+            first_save = True
+        super().save(*args, **kwargs) # we have to save once so that we can .create Episodes when syncing
+        if first_save:
             self.sync_podcast()
-        super().save(*args, **kwargs)
+        super().save(*args, **kwargs) # save again so now that we have the image
 
     def __str__(self):
         return self.name
@@ -43,7 +52,28 @@ class Podcast(models.Model):
 
     def sync_yt_playlist(self):
         """Uses the YouTube api to get all videos in a playlist"""
-        return f"Synced {self}"
+        if not self.url:
+            raise ValueError("A Youtube playlist needs a url")
+        playlist = get_playlist2(self.url)
+        # self.name = playlist.title
+        # self.slug = slugify(self.name)
+        self.description = playlist.description
+
+        # try to get an image out of it
+        if len(playlist) > 0:
+            req = requests.get(playlist[0].thumb, stream=True)
+            self.image.save(f'{self.slug}.jpg', ContentFile(req.content))
+
+        # delete old episodes
+        for episode in self.episode_set.all():
+            episode.delete()
+        # add new episodes
+        for video in playlist:
+            # todo what happens to videos longer than 24 hours?
+            self.episode_set.create(name=video.title,
+                                    url=f"{YOUTUBE_BASE}{video.videoid}",
+                                    pub_date=datetime.fromisoformat(video.published),
+                                    duration=timedelta(seconds=video.length))
 
     def sync_yt_singles(self):
         # todo check if videos are still available
@@ -57,12 +87,12 @@ class Episode(models.Model):
         downloaded: boolean whether we have downloaded the file to the server
         mp3: the location of the mp3 file on the server
     """
-    name = models.CharField(max_length=40)
+    name = models.CharField(max_length=100)
     url = models.URLField()
     downloaded = models.BooleanField(default=False)
     mp3 = models.FileField(upload_to=None, blank=True)
-    pub_date = models.DateField(default=date.today, editable=False)
-    duration = models.DurationField(default=timedelta(), editable=False)
+    pub_date = models.DateTimeField(default=datetime.now)
+    duration = models.DurationField(default=timedelta())
     
     # Foreign Key is associated podcast
     podcast = models.ForeignKey(Podcast, on_delete=models.CASCADE)
