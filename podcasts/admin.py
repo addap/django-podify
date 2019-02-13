@@ -1,7 +1,7 @@
 from django.contrib import admin
+from django.urls import path, reverse
+
 from podcasts.models import Podcast, Episode
-from django.urls import reverse
-from django.utils.html import format_html
 
 
 # Register your models here.
@@ -19,10 +19,10 @@ class PodcastAdmin(admin.ModelAdmin):
         ('Metadata', {'fields': ['url', 'description', 'image', ]})
     ]
     prepopulated_fields = {'slug': ('name',)}
-    readonly_fields = ('podcast_actions',)
+    actions = ['sync_podcasts', ]
 
     inlines = [EpisodeInline]
-    list_display = ('name', 'podcast_type', 'podcast_actions')
+    list_display = ('name', 'podcast_type', )
 
     def get_readonly_fields(self, request, obj=None):
         if obj:
@@ -30,8 +30,18 @@ class PodcastAdmin(admin.ModelAdmin):
             return self.readonly_fields + ('slug',)
         return self.readonly_fields
 
-    def podcast_actions(self, obj):
-        return format_html('<a class="button" href={}>Sync</a>', reverse("podcasts:podcast-detail", args=[obj.slug]))
+    def get_urls(self):
+        urls = super().get_urls()
+        new_urls = [path('sync/', self.sync_podcasts)]
+        return new_urls + urls
+
+    def sync_podcasts(self, request, queryset):
+        for podcast in queryset:
+            podcast.sync_podcast()
+            podcast.save()
+            self.message_user(request, f"Synced podcast {podcast}")
+
+    sync_podcasts.short_description = "Sync selected podcasts"
 
 
 admin.site.register(Podcast, PodcastAdmin)

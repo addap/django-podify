@@ -1,7 +1,8 @@
 from django.db import models
 from django.core.files.base import ContentFile
 from datetime import timedelta, datetime
-from pafy import get_playlist2
+from django.utils import timezone
+import pafy
 import requests
 
 YOUTUBE_BASE = 'https://www.youtube.com/watch?v='
@@ -36,7 +37,7 @@ class Podcast(models.Model):
         first_save = False
         if self._state.adding is True:
             first_save = True
-        super().save(*args, **kwargs) # we have to save once so that we can .create Episodes when syncing
+        super().save(*args, **kwargs) # we have to save once so that we can .create() Episodes when syncing
         if first_save:
             self.sync_podcast()
         super().save(*args, **kwargs) # save again so now that we have the image
@@ -46,27 +47,33 @@ class Podcast(models.Model):
 
     def sync_podcast(self):
         if self.podcast_type == Podcast.YOUTUBE_PLAYLIST:
-            return self.sync_yt_playlist()
+            self.sync_yt_playlist()
         elif self.podcast_type == Podcast.SINGLES:
-            return self.sync_yt_singles()
+            self.sync_yt_singles()
+        return f"Synced podcast {self}"
 
     def sync_yt_playlist(self):
-        """Uses the YouTube api to get all videos in a playlist"""
+        """Uses pafy to get all videos in a playlist"""
         if not self.url:
             raise ValueError("A Youtube playlist needs a url")
-        playlist = get_playlist2(self.url)
+        playlist = pafy.get_playlist2(self.url)
         # self.name = playlist.title
         # self.slug = slugify(self.name)
         self.description = playlist.description
 
+        # get_playlist2 does not automatically filter out private/deleted videos, for that you have to access at least on of them
+        try:
+            playlist[0]
+        except IndexError:
+            raise ValueError("The playlist is empty")
+
         # try to get an image out of it
         if len(playlist) > 0:
-            req = requests.get(playlist[0].thumb, stream=True)
+            req = requests.get(playlist[0].thumb)
             self.image.save(f'{self.slug}.jpg', ContentFile(req.content))
 
         # delete old episodes
-        for episode in self.episode_set.all():
-            episode.delete()
+        self.episode_set.all().delete()
         # add new episodes
         for video in playlist:
             # todo what happens to videos longer than 24 hours?
@@ -76,8 +83,18 @@ class Podcast(models.Model):
                                     duration=timedelta(seconds=video.length))
 
     def sync_yt_singles(self):
-        # todo check if videos are still available
-        return f"Synced {self}"
+        """Checks the urls of each episode we have not downloaded yet to see if the video is still available"""
+        for episode in self.episode_set.filter(downloaded=False):
+            try:
+                p = pafy.new(episode.url)
+            except OSError:
+                episode.delete()
+                raise ValueError("Video is unavailable")
+
+            episode.name = p.title
+            episode.pub_date = datetime.fromisoformat(p.published)
+            episode.duration = timedelta(seconds=p.length)
+            episode.save()
 
 
 class Episode(models.Model):
@@ -87,12 +104,12 @@ class Episode(models.Model):
         downloaded: boolean whether we have downloaded the file to the server
         mp3: the location of the mp3 file on the server
     """
-    name = models.CharField(max_length=100)
+    name = models.CharField(max_length=100, blank=True)
     url = models.URLField()
     downloaded = models.BooleanField(default=False)
-    mp3 = models.FileField(upload_to=None, blank=True)
-    pub_date = models.DateTimeField(default=datetime.now)
-    duration = models.DurationField(default=timedelta())
+    mp3 = models.FileField(upload_to='mp3s', blank=True)
+    pub_date = models.DateTimeField(blank=True)
+    duration = models.DurationField(blank=True)
     
     # Foreign Key is associated podcast
     podcast = models.ForeignKey(Podcast, on_delete=models.CASCADE)

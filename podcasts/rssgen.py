@@ -2,6 +2,9 @@ import html
 from lxml import etree
 from podcasts.models import Podcast, Episode
 from django.urls import reverse
+from podify.settings import MEDIA_URL
+
+#todo reqrite to use django's rss class
 
 # Itunes namespace which needs to be prepended to itunes attributes
 ITUNES_NS = "http://www.itunes.com/DTDs/Podcast-1.0.dtd"
@@ -51,7 +54,7 @@ def create_episode(episode: Episode, podcast: Podcast, channel):
 
     item = etree.SubElement(channel, "item")
     etree.SubElement(item, "title").text = title
-    etree.SubElement(item, "enclosure", url=url, type="audio/mpeg")#, length=length)
+    etree.SubElement(item, "enclosure", url=f"192.168.178.32:8000{url}", type="audio/mpeg")#, length=length)
     etree.SubElement(item, "guid").text = url
     etree.SubElement(item, "pubDate").text = episode.pub_date.isoformat()
     etree.SubElement(item, ITUNES + "duration").text = str(episode.duration)
