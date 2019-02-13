@@ -19,7 +19,7 @@ class PodcastAdmin(admin.ModelAdmin):
         ('Metadata', {'fields': ['url', 'description', 'image', ]})
     ]
     prepopulated_fields = {'slug': ('name',)}
-    actions = ['update_podcasts', 'sync_podcasts', ]
+    actions = ['update_podcasts', 'download_podcasts', ]
 
     inlines = [EpisodeInline]
     list_display = ('name', 'podcast_type', )
@@ -32,8 +32,11 @@ class PodcastAdmin(admin.ModelAdmin):
 
     def get_urls(self):
         urls = super().get_urls()
-        new_urls = [path('sync/', self.sync_podcasts)]
-        return new_urls + urls
+        my_urls = [
+            path('download/', self.download_podcasts),
+            path('update/', self.update_podcasts),
+        ]
+        return my_urls + urls
 
     def update_podcasts(self, request, queryset):
         for podcast in queryset:
@@ -43,13 +46,13 @@ class PodcastAdmin(admin.ModelAdmin):
 
     update_podcasts.short_description = "Update selected podcasts"
 
-    def sync_podcasts(self, request, queryset):
+    def download_podcasts(self, request, queryset):
         for podcast in queryset:
             s = podcast.download_podcast()
             self.message_user(request, s)
             podcast.save()
 
-    sync_podcasts.short_description = "Sync selected podcasts"
+    download_podcasts.short_description = "Download selected podcasts"
 
 
 admin.site.register(Podcast, PodcastAdmin)

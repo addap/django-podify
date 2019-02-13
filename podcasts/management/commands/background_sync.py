@@ -9,19 +9,16 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         podcast_id = options['podcast_id']
         if podcast_id:
+            podcast_set = Podcast.objects.filter(pk__in=podcast_id)
+        else:
+            podcast_set = Podcast.objects.all()
+
+        for podcast in podcast_set:
             try:
-                podcast = Podcast.objects.get(pk=podcast_id)
                 self.stdout.write(podcast.download_podcast())
             except Podcast.DoesNotExist:
                 raise CommandError(f"Podcast with id {podcast_id} does not exist")
             except ValueError as err:
                 raise CommandError(err)
             podcast.save()
-        else:
-            for podcast in Podcast.objects.all():
-                try:
-                    self.stdout.write(podcast.download_podcast())
-                except ValueError as err:
-                    raise CommandError(f"{err}")
-                podcast.save()
 

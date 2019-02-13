@@ -53,6 +53,7 @@ class Podcast(models.Model):
         self.update_podcast()
         for episode in self.episode_set.all():
             episode.download()
+        return f"Downloaded podcast {self}"
 
     def update_podcast(self):
         if self.podcast_type == Podcast.YOUTUBE_PLAYLIST:
@@ -93,7 +94,10 @@ class Podcast(models.Model):
 
     def update_yt_singles(self):
         """Checks the urls of each episode we have not downloaded yet to see if the video is still available"""
-        for episode in self.episode_set.filter(downloaded=False):
+        for episode in self.episode_set.filter():
+            if episode.downloaded():
+                continue
+
             try:
                 p = pafy.new(episode.url)
             except OSError:
@@ -130,6 +134,9 @@ class Episode(models.Model):
     downloaded.boolean = True
 
     def download(self):
+        if self.downloaded():
+            return
+
         filename = f'{MEDIA_ROOT}{self.name}.mp3'
         ydl_opts = {
             'format': 'bestaudio/best',
