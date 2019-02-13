@@ -122,3 +122,5 @@ USE_TZ = True
 STATIC_URL = '/static/'
 MEDIA_ROOT = '/home/adrian/programming/django-podify/media/'
 MEDIA_URL = '/media/'
+
+SERVER_URL = 'http://192.168.178.32:8000'

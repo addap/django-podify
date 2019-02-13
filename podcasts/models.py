@@ -1,9 +1,13 @@
-from django.db import models
-from django.core.files.base import ContentFile
-from datetime import timedelta, datetime
-from django.utils import timezone
+import os
 import pafy
 import requests
+import youtube_dl
+from datetime import timedelta, datetime
+from django.core.files import File
+from django.core.files.base import ContentFile
+from django.db import models
+
+from podify.settings import MEDIA_ROOT
 
 YOUTUBE_BASE = 'https://www.youtube.com/watch?v='
 
@@ -39,20 +43,25 @@ class Podcast(models.Model):
             first_save = True
         super().save(*args, **kwargs) # we have to save once so that we can .create() Episodes when syncing
         if first_save:
-            self.sync_podcast()
+            self.update_podcast()
         super().save(*args, **kwargs) # save again so now that we have the image
 
     def __str__(self):
         return self.name
 
-    def sync_podcast(self):
-        if self.podcast_type == Podcast.YOUTUBE_PLAYLIST:
-            self.sync_yt_playlist()
-        elif self.podcast_type == Podcast.SINGLES:
-            self.sync_yt_singles()
-        return f"Synced podcast {self}"
+    def download_podcast(self):
+        self.update_podcast()
+        for episode in self.episode_set.all():
+            episode.download()
 
-    def sync_yt_playlist(self):
+    def update_podcast(self):
+        if self.podcast_type == Podcast.YOUTUBE_PLAYLIST:
+            self.update_yt_playlist()
+        elif self.podcast_type == Podcast.SINGLES:
+            self.update_yt_singles()
+        return f"Updated podcast {self}"
+
+    def update_yt_playlist(self):
         """Uses pafy to get all videos in a playlist"""
         if not self.url:
             raise ValueError("A Youtube playlist needs a url")
@@ -82,7 +91,7 @@ class Podcast(models.Model):
                                     pub_date=datetime.fromisoformat(video.published),
                                     duration=timedelta(seconds=video.length))
 
-    def sync_yt_singles(self):
+    def update_yt_singles(self):
         """Checks the urls of each episode we have not downloaded yet to see if the video is still available"""
         for episode in self.episode_set.filter(downloaded=False):
             try:
@@ -106,7 +115,6 @@ class Episode(models.Model):
     """
     name = models.CharField(max_length=100, blank=True)
     url = models.URLField()
-    downloaded = models.BooleanField(default=False)
     mp3 = models.FileField(upload_to='mp3s', blank=True)
     pub_date = models.DateTimeField(blank=True)
     duration = models.DurationField(blank=True)
@@ -116,4 +124,27 @@ class Episode(models.Model):
 
     def __str__(self):
         return self.name
+
+    def downloaded(self):
+        return bool(self.mp3)
+    downloaded.boolean = True
+
+    def download(self):
+        filename = f'{MEDIA_ROOT}{self.name}.mp3'
+        ydl_opts = {
+            'format': 'bestaudio/best',
+            'outtmpl': filename,
+            'quiet': True,
+            'postprocessors': [{
+                'key': 'FFmpegExtractAudio',
+                'preferredcodec': 'mp3',
+                'preferredquality': '128',
+            }],
+        }
+        with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+            ydl.download([self.url])
+        with File(open(filename, "rb")) as f:
+            self.mp3.save(f"{self.name}.mp3", f)
+        os.remove(filename)
+        self.save()
 

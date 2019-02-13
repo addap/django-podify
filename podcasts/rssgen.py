@@ -2,7 +2,8 @@ import html
 from lxml import etree
 from podcasts.models import Podcast, Episode
 from django.urls import reverse
-from podify.settings import MEDIA_URL
+from podify.settings import SERVER_URL, MEDIA_ROOT
+import os
 
 #todo reqrite to use django's rss class
 
@@ -49,12 +50,12 @@ def create_channel(rss, podcast: Podcast):
 
 def create_episode(episode: Episode, podcast: Podcast, channel):
     url = reverse('podcasts:episode-detail', kwargs={'slug': podcast.slug, 'episode_id': episode.id})
-    # length = str(os.path.getsize(episode.mp3))
+    length = str(os.path.getsize(f"{MEDIA_ROOT}{episode.mp3.name}"))
     title = html.escape(episode.name)
 
     item = etree.SubElement(channel, "item")
     etree.SubElement(item, "title").text = title
-    etree.SubElement(item, "enclosure", url=f"192.168.178.32:8000{url}", type="audio/mpeg")#, length=length)
+    etree.SubElement(item, "enclosure", url=f"{SERVER_URL}{url}", type="audio/mpeg", length=length)
     etree.SubElement(item, "guid").text = url
     etree.SubElement(item, "pubDate").text = episode.pub_date.isoformat()
     etree.SubElement(item, ITUNES + "duration").text = str(episode.duration)

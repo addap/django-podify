@@ -11,16 +11,16 @@ class Command(BaseCommand):
         if podcast_id:
             try:
                 podcast = Podcast.objects.get(pk=podcast_id)
-                self.stdout.write(podcast.sync_podcast())
+                self.stdout.write(podcast.download_podcast())
             except Podcast.DoesNotExist:
                 raise CommandError(f"Podcast with id {podcast_id} does not exist")
             except ValueError as err:
-                raise CommandError(f"{err}")
+                raise CommandError(err)
             podcast.save()
         else:
             for podcast in Podcast.objects.all():
                 try:
-                    self.stdout.write(podcast.sync_podcast())
+                    self.stdout.write(podcast.download_podcast())
                 except ValueError as err:
                     raise CommandError(f"{err}")
                 podcast.save()
