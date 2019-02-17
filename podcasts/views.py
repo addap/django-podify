@@ -2,7 +2,6 @@ import traceback
 from django.shortcuts import render, get_object_or_404
 from django.http import FileResponse, HttpResponse, Http404
 from .models import Podcast, Episode
-from .rssgen import generate_from_podcast
 
 
 # Create your views here.
@@ -22,24 +21,18 @@ def podcast_detail(request, slug):
                   context={'podcast': podcast})
 
 
-def podcast_rss(request, slug):
-    podcast = get_object_or_404(Podcast, slug=slug)
-    rss_text = generate_from_podcast(podcast)
-    response = FileResponse(rss_text, as_attachment=True,
-                            filename=f"{podcast.name}.rss", content_type='application/rss+xml; charset=UTF-8')
-    return response
-
-
-def episode_detail(request, slug, episode_id):
+def episode_download(request, slug, episode_id):
     episode = get_object_or_404(Episode, pk=episode_id)
 
-    if not episode.downloaded():
-        try:
-            episode.download()
-        except Exception as e:
-            s = traceback.format_exc()
-            raise Http404(f"Could not download video to server {s}")
+    # if not episode.downloaded:
+    #     try:
+    #         episode.download()
+    #     except Exception:
+    #         s = traceback.format_exc()
+    #         raise Http404(f"Could not download video to server {s}")
 
-    return FileResponse(episode.mp3, as_attachment=True,
-                        content_type='audio/mpeg3')
-
+    if episode.downloaded:
+        return FileResponse(episode.mp3, as_attachment=True,
+                            content_type='audio/mpeg3')
+    else:
+        raise Http404("Episode not downloaded yet!")

@@ -49,19 +49,16 @@ class PodcastFeed(Feed):
         return {'image': podcast.image}
 
     def items(self, podcast: Podcast):
-        return podcast.episode_set.all()
+        return podcast.episode_set.filter(downloaded=True)
 
     def item_link(self, episode: Episode):
-        return reverse('podcasts:episode-detail', kwargs={'slug': episode.podcast.slug, 'episode_id': episode.id})
+        return reverse('podcasts:episode-download', kwargs={'slug': episode.podcast.slug, 'episode_id': episode.id})
 
     def item_enclosure_url(self, episode: Episode):
-        return f"{SERVER_URL}{self.item_link(episode)}"
+        return f'{SERVER_URL}{episode.mp3.url}'
 
     def item_enclosure_length(self, episode: Episode):
-        if episode.mp3:
-            return episode.mp3.size
-        else:
-            return 0
+        return episode.mp3.size
 
     def item_enclosure_mime_type(self, item):
         return "audio/mpeg"

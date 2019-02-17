@@ -7,8 +7,11 @@ just do it until I find another faulty one
 
 TODO: implement logging
 DONE: use django's builtin rss generator
-TODO: use categories from youtube in rss
 
-TODO: try out domain-less url in enclosure. my podcatcher seems to be able to find the thumbnail using only the /media/... part
+DONE: try out domain-less url in enclosure. my podcatcher seems to be able to find the thumbnail using only the /media/... part
+        Does not work
 
 TODO: look at generic view object_detail, object_list
+
+DONE: Delete files when podcast/episode is deleted
+        Using pre_delete signal to delete everything

@@ -42,12 +42,13 @@ class Podcast(models.Model):
     def save(self, *args, **kwargs):
         """When a podcast is saved for the first time we get the episode urls."""
         first_save = False
-        if self._state.adding is True:
+        if self._state.adding:
             first_save = True
+            self.slug = slugify(self.name)
         super().save(*args, **kwargs) # we have to save once so that we can .create() Episodes when syncing
         if first_save:
             self.update_podcast()
-        super().save(*args, **kwargs) # save again so now that we have the image
+            super().save(*args, **kwargs) # save again so now that we have the image
 
     def __str__(self):
         return self.name
@@ -81,44 +82,41 @@ class Podcast(models.Model):
             raise ValueError("The playlist is empty")
 
         # try to get an image out of it
-        if len(playlist) > 0:
+        if len(playlist) > 0 and not self.image:
             req = requests.get(playlist[0].thumb)
             self.image.save(f'{self.slug}.jpg', ContentFile(req.content))
 
-        # delete old episodes
-        self.episode_set.all().delete()
         # add new episodes
         for video in playlist:
-            # todo what happens to videos longer than 24 hours?
-            self.episode_set.create(name=video.title,
-                                    url=f"{YOUTUBE_BASE}{video.videoid}",
-                                    pub_date=datetime.fromisoformat(video.published),
-                                    duration=timedelta(seconds=video.length),
-                                    description=video.description)
+            self.episode_set.update_or_create(video_id=video.videoid, defaults={
+                'name': video.title,
+                'slug': slugify(video.title),
+                'url': f"{YOUTUBE_BASE}{video.videoid}",
+                'pub_date': datetime.fromisoformat(video.published),
+                'duration': timedelta(seconds=video.length),
+                'video_id': video.videoid,
+                'description': video.description,
+            })
 
     def update_yt_singles(self):
         """Checks the urls of each episode we have not downloaded yet to see if the video is still available"""
-        thumb_episode = self.episode_set.first()
-        if thumb_episode:
-            thumb_episode = pafy.new(thumb_episode.url)
-            req = requests.get(thumb_episode.thumb)
-            self.image.save(f'{self.slug}.jpg', ContentFile(req.content))
-
         for episode in self.episode_set.all():
-            # if episode.downloaded():
-            #     continue
             try:
                 p = pafy.new(episode.url)
             except OSError:
                 episode.delete()
                 raise ValueError("Video is unavailable")
 
+            if not self.image:
+                req = requests.get(p.thumb)
+                self.image.save(f'{self.slug}.jpg', ContentFile(req.content))
+
             episode.name = p.title
+            episode.slug = slugify(p.title)
             episode.pub_date = datetime.fromisoformat(p.published)
             episode.duration = timedelta(seconds=p.length)
             episode.description = p.description
-            req = requests.get(p.thumb)
-            episode.image.save(f'{episode.slug}.jpg', ContentFile(req.content))
+            episode.video_id = p.videoid
             episode.save()
 
 
@@ -130,28 +128,22 @@ class Episode(models.Model):
         mp3: the location of the mp3 file on the server
     """
     name = models.CharField(max_length=100, blank=True)
-    slug = models.SlugField(max_length=100, blank=True)
+    slug = models.SlugField(max_length=100, blank=True, unique=True)
     description = models.TextField(blank=True)
     url = models.URLField()
+    video_id = models.CharField(max_length=11, blank=True, unique=True)
     mp3 = models.FileField(upload_to='mp3s', blank=True)
+    downloaded = models.BooleanField(default=False)
     pub_date = models.DateTimeField(blank=True, null=True)
     duration = models.DurationField(blank=True, null=True)
-    image = models.ImageField(upload_to='thumbnails', blank=True)
-    
+
     # Foreign Key is associated podcast
     podcast = models.ForeignKey(Podcast, on_delete=models.CASCADE)
 
     def __str__(self):
         return self.name
 
-    def downloaded(self):
-        return bool(self.mp3)
-    downloaded.boolean = True
-
     def download(self):
-        if self.downloaded():
-            return
-
         filename = f'{MEDIA_ROOT}{self.slug}.mp3'
         ydl_opts = {
             'format': 'bestaudio/best',
@@ -177,5 +169,6 @@ class Episode(models.Model):
             self.mp3.save(f"{self.slug}.mp3", f)
 
         os.remove(filename)
+        self.downloaded = True
         self.save()
 
