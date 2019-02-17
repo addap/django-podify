@@ -18,7 +18,7 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 
-# todo the + static(...) line is to be only used in production
+# todo the + static(...) line is to be only used in development
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('podcasts.urls')),

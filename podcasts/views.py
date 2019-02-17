@@ -8,7 +8,7 @@ from .rssgen import generate_from_podcast
 # Create your views here.
 def index(request):
     template_name = 'podcasts/index.html'
-    podcast_list = Podcast.objects.all().order_by('slug')
+    podcast_list = Podcast.objects.all().order_by('pub_date')
     return render(request,
                   template_name,
                   context={'podcast_list': podcast_list})
@@ -25,7 +25,6 @@ def podcast_detail(request, slug):
 def podcast_rss(request, slug):
     podcast = get_object_or_404(Podcast, slug=slug)
     rss_text = generate_from_podcast(podcast)
-    # response = FileResponse(rss_text)
     response = FileResponse(rss_text, as_attachment=True,
                             filename=f"{podcast.name}.rss", content_type='application/rss+xml; charset=UTF-8')
     return response

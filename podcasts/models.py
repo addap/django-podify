@@ -6,6 +6,8 @@ from datetime import timedelta, datetime
 from django.core.files import File
 from django.core.files.base import ContentFile
 from django.db import models
+import subprocess
+from django.utils.text import slugify
 
 from podify.settings import MEDIA_ROOT
 
@@ -35,6 +37,7 @@ class Podcast(models.Model):
     url = models.URLField(blank=True)
     description = models.TextField(blank=True)
     image = models.ImageField(upload_to='thumbnails', blank=True)
+    pub_date = models.DateTimeField(auto_now_add=True)
 
     def save(self, *args, **kwargs):
         """When a podcast is saved for the first time we get the episode urls."""
@@ -90,14 +93,20 @@ class Podcast(models.Model):
             self.episode_set.create(name=video.title,
                                     url=f"{YOUTUBE_BASE}{video.videoid}",
                                     pub_date=datetime.fromisoformat(video.published),
-                                    duration=timedelta(seconds=video.length))
+                                    duration=timedelta(seconds=video.length),
+                                    description=video.description)
 
     def update_yt_singles(self):
         """Checks the urls of each episode we have not downloaded yet to see if the video is still available"""
-        for episode in self.episode_set.filter():
-            if episode.downloaded():
-                continue
+        thumb_episode = self.episode_set.first()
+        if thumb_episode:
+            thumb_episode = pafy.new(thumb_episode.url)
+            req = requests.get(thumb_episode.thumb)
+            self.image.save(f'{self.slug}.jpg', ContentFile(req.content))
 
+        for episode in self.episode_set.all():
+            # if episode.downloaded():
+            #     continue
             try:
                 p = pafy.new(episode.url)
             except OSError:
@@ -107,6 +116,9 @@ class Podcast(models.Model):
             episode.name = p.title
             episode.pub_date = datetime.fromisoformat(p.published)
             episode.duration = timedelta(seconds=p.length)
+            episode.description = p.description
+            req = requests.get(p.thumb)
+            episode.image.save(f'{episode.slug}.jpg', ContentFile(req.content))
             episode.save()
 
 
@@ -118,10 +130,13 @@ class Episode(models.Model):
         mp3: the location of the mp3 file on the server
     """
     name = models.CharField(max_length=100, blank=True)
+    slug = models.SlugField(max_length=100, blank=True)
+    description = models.TextField(blank=True)
     url = models.URLField()
     mp3 = models.FileField(upload_to='mp3s', blank=True)
-    pub_date = models.DateTimeField(blank=True)
-    duration = models.DurationField(blank=True)
+    pub_date = models.DateTimeField(blank=True, null=True)
+    duration = models.DurationField(blank=True, null=True)
+    image = models.ImageField(upload_to='thumbnails', blank=True)
     
     # Foreign Key is associated podcast
     podcast = models.ForeignKey(Podcast, on_delete=models.CASCADE)
@@ -137,7 +152,7 @@ class Episode(models.Model):
         if self.downloaded():
             return
 
-        filename = f'{MEDIA_ROOT}{self.name}.mp3'
+        filename = f'{MEDIA_ROOT}{self.slug}.mp3'
         ydl_opts = {
             'format': 'bestaudio/best',
             'outtmpl': filename,
@@ -148,10 +163,19 @@ class Episode(models.Model):
                 'preferredquality': '128',
             }],
         }
-        with youtube_dl.YoutubeDL(ydl_opts) as ydl:
-            ydl.download([self.url])
+
+        while True:
+            with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+                ydl.download([self.url])
+
+            # check mp3 for errors, sometimes they seem to contain errors and podcast addict can't really play them
+            c = subprocess.run(f'ffmpeg -v error -i "{filename}" -f null -'.split(), capture_output=True)
+            if c.stderr == b'':
+                break
+
         with File(open(filename, "rb")) as f:
-            self.mp3.save(f"{self.name}.mp3", f)
+            self.mp3.save(f"{self.slug}.mp3", f)
+
         os.remove(filename)
         self.save()
 

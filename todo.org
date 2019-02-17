@@ -1,0 +1,14 @@
+
+
+DONE: Check integrity of mp3 using
+ffmpeg -v error -i not_DSL_macros_-_Christophe_Grand.mp3 -f null -
+from https://superuser.com/questions/100288/how-can-i-check-the-integrity-of-a-video-file-avi-mpeg-mp4 
+just do it until I find another faulty one 
+
+TODO: implement logging
+DONE: use django's builtin rss generator
+TODO: use categories from youtube in rss
+
+TODO: try out domain-less url in enclosure. my podcatcher seems to be able to find the thumbnail using only the /media/... part
+
+TODO: look at generic view object_detail, object_list

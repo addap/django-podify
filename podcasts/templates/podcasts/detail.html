@@ -1,5 +1,8 @@
-<h1>{{ podcast.name }}</h1>
+{% extends 'podcasts/base.html' %}
+{% block title %}{{ podcast.name }}{% endblock title %}
+{% block content %}
 {% if podcast.image %}
-<img src="{{ podcast.image.url }}"><br>
+<img src="{{ podcast.image.url }}" alt="{{ podcast.name }}'s Picture"><br>
 {%  endif %}
 <a href="{% url 'podcasts:podcast-rss' podcast.slug %}">RSS</a>
+{% endblock content %}

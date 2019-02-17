@@ -4,6 +4,7 @@ from podcasts.models import Podcast, Episode
 from django.urls import reverse
 from podify.settings import SERVER_URL, MEDIA_ROOT
 import os
+from _datetime import datetime
 
 #todo reqrite to use django's rss class
 
@@ -31,7 +32,7 @@ def generate_from_podcast(podcast: Podcast):
 
 
 def create_channel(rss, podcast: Podcast):
-    link = reverse('podcasts:podcast-rss', args=(podcast.slug,))
+    link = reverse('podcasts:podcast-detail', args=(podcast.slug,))
 
     channel = etree.SubElement(rss, "channel")
     name = html.escape(podcast.name)
@@ -55,7 +56,7 @@ def create_episode(episode: Episode, podcast: Podcast, channel):
 
     item = etree.SubElement(channel, "item")
     etree.SubElement(item, "title").text = title
-    etree.SubElement(item, "enclosure", url=f"{SERVER_URL}{url}", type="audio/mpeg", length=length)
+    etree.SubElement(item, "enclosure", url=f'{SERVER_URL}{url}', type="audio/mpeg", length=length)
     etree.SubElement(item, "guid").text = url
     etree.SubElement(item, "pubDate").text = episode.pub_date.isoformat()
     etree.SubElement(item, ITUNES + "duration").text = str(episode.duration)

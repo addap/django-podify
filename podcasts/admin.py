@@ -7,8 +7,7 @@ from podcasts.models import Podcast, Episode
 # Register your models here.
 class EpisodeInline(admin.TabularInline):
     model = Episode
-    # fields = ['name', 'url', ]
-    exclude = ['mp3']
+    fields = ['name', 'url', 'downloaded', 'pub_date', 'duration', ]
     readonly_fields = ('downloaded', 'pub_date', 'duration', )
     extra = 0
 
@@ -16,9 +15,10 @@ class EpisodeInline(admin.TabularInline):
 class PodcastAdmin(admin.ModelAdmin):
     fieldsets = [
         (None, {'fields': ['name', 'podcast_type', 'slug', ]}),
-        ('Metadata', {'fields': ['url', 'description', 'image', ]})
+        ('Metadata', {'fields': ['url', 'description', 'image', 'pub_date', ]})
     ]
     prepopulated_fields = {'slug': ('name',)}
+    readonly_fields = ('pub_date', )
     actions = ['update_podcasts', 'download_podcasts', ]
 
     inlines = [EpisodeInline]
@@ -30,13 +30,13 @@ class PodcastAdmin(admin.ModelAdmin):
             return self.readonly_fields + ('slug',)
         return self.readonly_fields
 
-    def get_urls(self):
-        urls = super().get_urls()
-        my_urls = [
-            path('download/', self.download_podcasts),
-            path('update/', self.update_podcasts),
-        ]
-        return my_urls + urls
+    # def get_urls(self):
+    #     urls = super().get_urls()
+    #     my_urls = [
+    #         path('download/', self.download_podcasts),
+    #         path('update/', self.update_podcasts),
+    #     ]
+    #     return my_urls + urls
 
     def update_podcasts(self, request, queryset):
         for podcast in queryset:

@@ -1,3 +1,6 @@
+{% extends 'podcasts/base.html' %}
+{% block title %}All Podcasts{%  endblock title %}
+{% block content %}
 <h1>Podcasts</h1>
 
 <ul>
@@ -5,3 +8,4 @@
 <li><a href="{% url 'podcasts:podcast-detail' podcast.slug %}">{{ podcast.name }}</a></li>
 {% endfor %}
 </ul>
+{% endblock content %}
