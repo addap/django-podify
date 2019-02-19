@@ -7,6 +7,8 @@ from podify.settings import SERVER_URL, MEDIA_ROOT
 
 
 class iTunesFeed(Rss201rev2Feed):
+    # content_type = 'application/xml; charset=utf-8'
+
     def rss_attributes(self):
         attr = super().rss_attributes()
         attr['xmlns:itunes'] = 'http://www.itunes.com/dtds/podcast-1.0.dtd'
@@ -15,6 +17,10 @@ class iTunesFeed(Rss201rev2Feed):
     def add_root_elements(self, handler):
         super().add_root_elements(handler)
         if self.feed['image']:
+            handler.startElement('image', {})
+            handler.addQuickElement('url', self.feed['image'].url)
+            handler.addQuickElement('title', f"{self.feed['title']}'s Picture")
+            handler.endElement('image')
             handler.addQuickElement('itunes:image', self.feed['image'].url)
 
     def add_item_elements(self, handler, item):
@@ -50,6 +56,9 @@ class PodcastFeed(Feed):
 
     def items(self, podcast: Podcast):
         return podcast.episode_set.filter(downloaded=True)
+
+    def item_title(self, episode: Episode):
+        return episode.name
 
     def item_link(self, episode: Episode):
         return reverse('podcasts:episode-download', kwargs={'slug': episode.podcast.slug, 'episode_id': episode.id})

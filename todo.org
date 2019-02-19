@@ -5,6 +5,10 @@ ffmpeg -v error -i not_DSL_macros_-_Christophe_Grand.mp3 -f null -
 from https://superuser.com/questions/100288/how-can-i-check-the-integrity-of-a-video-file-avi-mpeg-mp4 
 just do it until I find another faulty one 
 
+DONE: Don't download webm encoded videos, my podcast app and the internal android music player cannot skip to a specific timecode with these files. Use mp4,m4a etc instead
+TODO: try-except around downloading of youtube video
+
+
 TODO: implement logging
 DONE: use django's builtin rss generator
 
@@ -15,3 +19,10 @@ TODO: look at generic view object_detail, object_list
 
 DONE: Delete files when podcast/episode is deleted
         Using pre_delete signal to delete everything
+
+TODO: cache-control headers in rss response so that firefox doesn't cache them. Content-type can be controller by setting
+        the content_type field in my feed generator but for the cache-control head I probably need to write a new view
+        that instantiates that generator, generates a feed and then sends it using HttpResponse where I can set the headers.
+        harmontown uses: Cache-control: no-cache, no-store, must-revalidate, private, max-age=0
+        https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cache-Control?utm_source=mozilla&utm_medium=devtools-netmonitor&utm_campaign=default
+

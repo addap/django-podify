@@ -1,0 +1,19 @@
+Problem:
+    FileResponse, with as_attachment=True and filename set would not open a save dialog when args was simply a string
+    instead, args needs to be an opened file then it works
+    Or do it with manually setting Content-Disposition but then that's probably the same as a normal HttpResponse with that
+    header set.
+
+Follow up Question:
+    What is a streaming http response?
+Answer:
+    If files are very large you can stream them to the browser (e.g. Videos). The documentation says you should avoid
+    this with django since the streaming response ties up a worker for the entire duration of the download.
+    Since my file responses are so small it should hardly matter.
+
+Problem:
+    The rss feeds I generate using the syndication framework are always downloaded as an attachment. Why is the
+    attachment header set to true? Maybe I want to view it in the browser.
+Solution:
+    https://stackoverflow.com/a/1081023
+    The third answer should also work since it should do the same thing.

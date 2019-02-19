@@ -128,4 +128,4 @@ STATIC_URL = '/static/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media/')
 MEDIA_URL = '/media/'
 
-SERVER_URL = 'http://192.168.178.39:8000'
+SERVER_URL = 'http://192.168.188.22:8000'

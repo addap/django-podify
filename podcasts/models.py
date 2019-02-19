@@ -146,7 +146,7 @@ class Episode(models.Model):
     def download(self):
         filename = f'{MEDIA_ROOT}{self.slug}.mp3'
         ydl_opts = {
-            'format': 'bestaudio/best',
+            'format': 'bestaudio[ext!=webm]/best[ext!=webm]/[ext!=webm]',
             'outtmpl': filename,
             'quiet': True,
             'postprocessors': [{
@@ -157,10 +157,17 @@ class Episode(models.Model):
         }
 
         while True:
-            with youtube_dl.YoutubeDL(ydl_opts) as ydl:
-                ydl.download([self.url])
+            try:
+                with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+                    ydl.download([self.url])
+            except youtube_dl.DownloadError as e:
+                #todo do something. How can I return errors from admin actions?
+                pass
+
 
             # check mp3 for errors, sometimes they seem to contain errors and podcast addict can't really play them
+            # todo It wasn't because of errors but because podcast addict cannot play webm encoded files that well.
+            # still, leaving it in for some time and todo log if there is an error
             c = subprocess.run(f'ffmpeg -v error -i "{filename}" -f null -'.split(), capture_output=True)
             if c.stderr == b'':
                 break
