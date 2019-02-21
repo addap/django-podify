@@ -60,13 +60,17 @@ class Podcast(models.Model):
             # self.slug = slugify(self.name)
             self.description = playlist.description
 
-            # get_playlist2 does not automatically filter out private/deleted videos, for that you have to access at least on of them
+            # get_playlist2 does not automatically filter out private/deleted videos, for that you have to access at
+            # least one of them
+            # Afaik it filters out private/deleted videos but keeps videos that are claimed by eg UMG but this
+            # is probably because of geo restrictions
             try:
                 playlist[0]
             except IndexError:
                 pass
 
-            # try to get an image out of it
+            # try to get an image out of it. This still works even with geo restricted videos so I can safely use the
+            # first video
             if len(playlist) > 0 and not self.image:
                 req = requests.get(playlist[0].thumb)
                 self.image.save(f'{self.slug}.jpg', ContentFile(req.content))
@@ -81,11 +85,11 @@ class Podcast(models.Model):
                     'duration': timedelta(seconds=video.length),
                     'video_id': video.videoid,
                     'description': video.description,
-                    'playlist_episode': True,
                 })
 
-        # the podcast's episodes that are not from the playlist
-        for episode in self.episode_set.filter(playlist_episode=False, invalid=False):
+        # iterate over all episodes, even the ones from the playlist, because get_playlist2 in some instances still
+        # returns videos that are unavailable
+        for episode in self.episode_set.filter(invalid=False):
             try:
                 p = pafy.new(episode.url)
             except OSError:
@@ -125,7 +129,6 @@ class Episode(models.Model):
     pub_date = models.DateTimeField(blank=True, null=True)
     duration = models.DurationField(blank=True, null=True)
     invalid = models.BooleanField(default=False)
-    playlist_episode = models.BooleanField(default=False)
 
     # Foreign Key is associated podcast
     podcast = models.ForeignKey(Podcast, on_delete=models.CASCADE)
@@ -134,6 +137,9 @@ class Episode(models.Model):
         return self.name
 
     def download(self):
+        if self.invalid:
+            raise ValueError("This episode is invalid. Don't try to download it")
+
         filename = f'{MEDIA_ROOT}{self.slug}.mp3'
         ydl_opts = {
             'format': 'bestaudio[ext!=webm]/best[ext!=webm]/[ext!=webm]',
@@ -146,25 +152,27 @@ class Episode(models.Model):
             }],
         }
 
-        while True:
-            try:
-                with youtube_dl.YoutubeDL(ydl_opts) as ydl:
-                    ydl.download([self.url])
-            except youtube_dl.DownloadError as e:
-                #todo do something? How can I return errors from admin actions?
-                self.invalid = True
-                self.save()
-                return
+        # while True:
+        try:
+            with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+                ydl.download([self.url])
+        except youtube_dl.DownloadError as e:
+            #todo do something? How can I return errors from admin actions?
+            print(e)
+            self.invalid = True
+            self.save()
+            return
 
+            # Apparently, this caused such a slowdown that everything broke. Firefox stopped trying to load the page
+            # and in the end no episode was fully downloaded. I should really look into how to do this asynchronously
             # check mp3 for errors, sometimes they seem to contain errors and podcast addict can't really play them
-            # todo It wasn't because of errors but because podcast addict cannot play webm encoded files that well.
-            # still, leaving it in for some time and todo log if there is an error
-            c = subprocess.run(f'ffmpeg -v error -i "{filename}" -f null -'.split(), capture_output=True)
-            if c.stderr == b'':
-                break
-            else:
-                #todo log error
-                pass
+            #
+            # c = subprocess.run(f'ffmpeg -v error -i "{filename}" -f null -'.split(), capture_output=True)
+            # if c.stderr == b'':
+            #     break
+            # else:
+            #     #todo log error
+            #     pass
 
         with File(open(filename, "rb")) as f:
             self.mp3.save(f"{self.slug}.mp3", f)

@@ -1,17 +1,30 @@
 from django.contrib import admin
-
+from django.contrib.admin.helpers import InlineAdminForm
+from django.forms import ModelForm
 from podcasts.models import Podcast, Episode
 
+
+# class EpisodeInlineForm(InlineAdminForm):
+#     def is_invalid(self):
+#
+#
+#     class Meta:
+#         model = Episode
 
 # Register your models here.
 class EpisodeInline(admin.TabularInline):
     model = Episode
-    fields = ['name', 'url', 'downloaded', 'pub_date', 'duration', ]
-    readonly_fields = ('downloaded', 'pub_date', 'duration', )
+    fields = ['name', 'url', 'downloaded', 'pub_date', 'duration', 'invalid', ]
+    readonly_fields = ('downloaded', 'pub_date', 'duration', 'invalid', )
     extra = 0
 
 
 class PodcastAdmin(admin.ModelAdmin):
+    class Media:
+        css = {
+            'all': ('css/admin/inline.css',)
+        }
+
     fieldsets = [
         (None, {'fields': ['name', 'slug', ]}),
         ('Metadata', {'fields': ['playlist_url', 'description', 'image', 'pub_date', ]})
