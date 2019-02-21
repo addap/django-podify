@@ -54,8 +54,8 @@ class Podcast(models.Model):
         Checks the urls of each episode we have not downloaded yet to see if the video is still available"""
 
         # if the podcast has a playlist
-        if self.url:
-            playlist = pafy.get_playlist2(self.url)
+        if self.playlist_url:
+            playlist = pafy.get_playlist2(self.playlist_url)
             # self.name = playlist.title
             # self.slug = slugify(self.name)
             self.description = playlist.description

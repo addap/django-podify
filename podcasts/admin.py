@@ -13,14 +13,14 @@ class EpisodeInline(admin.TabularInline):
 
 class PodcastAdmin(admin.ModelAdmin):
     fieldsets = [
-        (None, {'fields': ['name', 'podcast_type', 'slug', ]}),
-        ('Metadata', {'fields': ['url', 'description', 'image', 'pub_date', ]})
+        (None, {'fields': ['name', 'slug', ]}),
+        ('Metadata', {'fields': ['playlist_url', 'description', 'image', 'pub_date', ]})
     ]
     readonly_fields = ('pub_date', 'slug', )
     actions = ['update_podcasts', 'download_podcasts', ]
 
     inlines = [EpisodeInline]
-    list_display = ('name', 'podcast_type', )
+    list_display = ('name', )
 
     def update_podcasts(self, request, queryset):
         for podcast in queryset:
