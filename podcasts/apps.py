@@ -7,3 +7,11 @@ class PodcastsConfig(AppConfig):
 
     def ready(self):
         import podcasts.signals
+        import pafy
+
+        try:
+            with open("api-key") as f:
+                api_key = f.readline()
+                pafy.set_api_key(api_key)
+        except FileNotFoundError as e:
+            raise ValueError("You need a file api-key containing the youtube api key")
