@@ -6,8 +6,8 @@ from podcasts.models import Podcast, Episode
 # Register your models here.
 class EpisodeInline(admin.TabularInline):
     model = Episode
-    fields = ['name', 'url', 'downloaded', 'pub_date', 'duration', 'mp3', ]
-    readonly_fields = ('downloaded', 'pub_date', 'duration', 'mp3', )
+    fields = ['name', 'url', 'downloaded', 'pub_date', 'duration', ]
+    readonly_fields = ('downloaded', 'pub_date', 'duration', )
     extra = 0
 
 

@@ -1,3 +1,4 @@
+# -*- coding: future_fstrings -*-
 from django.core.management.base import BaseCommand, CommandError
 from podcasts.models import Podcast
 

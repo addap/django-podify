@@ -1,3 +1,4 @@
+# -*- coding: future_fstrings -*-
 import os
 import pafy
 import requests
@@ -16,25 +17,14 @@ YOUTUBE_BASE = 'https://www.youtube.com/watch?v='
 
 # Create your models here.
 class Podcast(models.Model):
-    """Model for a podcast. The different types are
-        - Youtube playlist: a playlist of videos
-        - Singles         : individual videos, the urls have to be supplied by the user
-
+    """Model for a podcast
         name : the name of the podcast
         url  : the playlist's url if applicable
         slug : a url friendly version of the name"""
 
-    YOUTUBE_PLAYLIST = 'YTP'
-    SINGLES = 'SNG'
-    PODCAST_TYPE_CHOICES = (
-        (YOUTUBE_PLAYLIST, 'YouTube Playlist'),
-        (SINGLES, 'Single Videos'),
-    )
-
     name = models.CharField(max_length=100)
     slug = models.CharField(max_length=100, unique=True)
-    podcast_type = models.CharField(max_length=3, choices=PODCAST_TYPE_CHOICES, default=YOUTUBE_PLAYLIST)
-    url = models.URLField(blank=True)
+    playlist_url = models.URLField(blank=True)
     description = models.TextField(blank=True)
     image = models.ImageField(upload_to='thumbnails', blank=True)
     pub_date = models.DateTimeField(auto_now_add=True)
@@ -55,57 +45,53 @@ class Podcast(models.Model):
 
     def download_podcast(self):
         self.update_podcast()
-        for episode in self.episode_set.all():
+        for episode in self.episode_set.filter(invalid=False):
             episode.download()
         return f"Downloaded podcast {self}"
 
     def update_podcast(self):
-        if self.podcast_type == Podcast.YOUTUBE_PLAYLIST:
-            self.update_yt_playlist()
-        elif self.podcast_type == Podcast.SINGLES:
-            self.update_yt_singles()
-        return f"Updated podcast {self}"
+        """Uses pafy to get all videos in a playlist
+        Checks the urls of each episode we have not downloaded yet to see if the video is still available"""
 
-    def update_yt_playlist(self):
-        """Uses pafy to get all videos in a playlist"""
-        if not self.url:
-            raise ValueError("A Youtube playlist needs a url")
-        playlist = pafy.get_playlist2(self.url)
-        # self.name = playlist.title
-        # self.slug = slugify(self.name)
-        self.description = playlist.description
+        # if the podcast has a playlist
+        if self.url:
+            playlist = pafy.get_playlist2(self.url)
+            # self.name = playlist.title
+            # self.slug = slugify(self.name)
+            self.description = playlist.description
 
-        # get_playlist2 does not automatically filter out private/deleted videos, for that you have to access at least on of them
-        try:
-            playlist[0]
-        except IndexError:
-            raise ValueError("The playlist is empty")
+            # get_playlist2 does not automatically filter out private/deleted videos, for that you have to access at least on of them
+            try:
+                playlist[0]
+            except IndexError:
+                pass
 
-        # try to get an image out of it
-        if len(playlist) > 0 and not self.image:
-            req = requests.get(playlist[0].thumb)
-            self.image.save(f'{self.slug}.jpg', ContentFile(req.content))
+            # try to get an image out of it
+            if len(playlist) > 0 and not self.image:
+                req = requests.get(playlist[0].thumb)
+                self.image.save(f'{self.slug}.jpg', ContentFile(req.content))
 
-        # add new episodes
-        for video in playlist:
-            self.episode_set.update_or_create(video_id=video.videoid, defaults={
-                'name': video.title,
-                'slug': slugify(video.title),
-                'url': f"{YOUTUBE_BASE}{video.videoid}",
-                'pub_date': datetime.fromisoformat(video.published),
-                'duration': timedelta(seconds=video.length),
-                'video_id': video.videoid,
-                'description': video.description,
-            })
+            # add new episodes
+            for video in playlist:
+                self.episode_set.update_or_create(video_id=video.videoid, defaults={
+                    'name': video.title,
+                    'slug': slugify(video.title),
+                    'url': f"{YOUTUBE_BASE}{video.videoid}",
+                    'pub_date': datetime.fromisoformat(video.published),
+                    'duration': timedelta(seconds=video.length),
+                    'video_id': video.videoid,
+                    'description': video.description,
+                    'playlist_episode': True,
+                })
 
-    def update_yt_singles(self):
-        """Checks the urls of each episode we have not downloaded yet to see if the video is still available"""
-        for episode in self.episode_set.all():
+        # the podcast's episodes that are not from the playlist
+        for episode in self.episode_set.filter(playlist_episode=False, invalid=False):
             try:
                 p = pafy.new(episode.url)
             except OSError:
-                episode.delete()
-                raise ValueError("Video is unavailable")
+                episode.invalid = True
+                episode.save()
+                continue
 
             if not self.image:
                 req = requests.get(p.thumb)
@@ -119,6 +105,8 @@ class Podcast(models.Model):
             episode.video_id = p.videoid
             episode.save()
 
+        return f"Updated podcast {self}"
+
 
 class Episode(models.Model):
     """Model for a podcast episode
@@ -128,7 +116,7 @@ class Episode(models.Model):
         mp3: the location of the mp3 file on the server
     """
     name = models.CharField(max_length=100, blank=True)
-    slug = models.SlugField(max_length=100, blank=True, unique=True)
+    slug = models.SlugField(max_length=100, blank=True)
     description = models.TextField(blank=True)
     url = models.URLField()
     video_id = models.CharField(max_length=11, blank=True, unique=True)
@@ -136,6 +124,8 @@ class Episode(models.Model):
     downloaded = models.BooleanField(default=False)
     pub_date = models.DateTimeField(blank=True, null=True)
     duration = models.DurationField(blank=True, null=True)
+    invalid = models.BooleanField(default=False)
+    playlist_episode = models.BooleanField(default=False)
 
     # Foreign Key is associated podcast
     podcast = models.ForeignKey(Podcast, on_delete=models.CASCADE)
@@ -161,9 +151,10 @@ class Episode(models.Model):
                 with youtube_dl.YoutubeDL(ydl_opts) as ydl:
                     ydl.download([self.url])
             except youtube_dl.DownloadError as e:
-                #todo do something. How can I return errors from admin actions?
-                pass
-
+                #todo do something? How can I return errors from admin actions?
+                self.invalid = True
+                self.save()
+                return
 
             # check mp3 for errors, sometimes they seem to contain errors and podcast addict can't really play them
             # todo It wasn't because of errors but because podcast addict cannot play webm encoded files that well.
@@ -171,6 +162,9 @@ class Episode(models.Model):
             c = subprocess.run(f'ffmpeg -v error -i "{filename}" -f null -'.split(), capture_output=True)
             if c.stderr == b'':
                 break
+            else:
+                #todo log error
+                pass
 
         with File(open(filename, "rb")) as f:
             self.mp3.save(f"{self.slug}.mp3", f)

@@ -13,7 +13,7 @@ TODO: implement logging
 DONE: use django's builtin rss generator
 
 DONE: try out domain-less url in enclosure. my podcatcher seems to be able to find the thumbnail using only the /media/... part
-        Does not work
+        Does not work, probably because the enclosure url can be an arbitrary url that does not need to belong to the same url
 
 TODO: look at generic view object_detail, object_list
 
@@ -26,3 +26,9 @@ TODO: cache-control headers in rss response so that firefox doesn't cache them. 
         harmontown uses: Cache-control: no-cache, no-store, must-revalidate, private, max-age=0
         https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cache-Control?utm_source=mozilla&utm_medium=devtools-netmonitor&utm_campaign=default
 
+DONE: add ignored-episodes list so that episodes that are in a playlist but are no longer available/I deleted them in the admin panel do not get put into the episode list again during an update
+        Not easily possible to have list fields with sqlite, instead just add an invalid flag to episode. But not a great
+        solution either because now I have to filter them out every time. I should just delete them since invalid videos
+        in a playlist are filtered out by pafy automatically
+DONE: Make it so I can add extra urls to a playlist podcast. Then the YT_PLAYLIST choice becomes moot and together with the ignored-episodes I should just use a urls list as the central object
+        Podcast is now unified. It wasn't a good abstraction to begin with
