@@ -8,7 +8,8 @@ from podify.settings import SERVER_URL, MEDIA_ROOT
 
 
 class iTunesFeed(Rss201rev2Feed):
-    # content_type = 'application/xml; charset=utf-8'
+    # set content type so that firefox shows me the rss feed in the browser
+    content_type = 'application/xml; charset=utf-8'
 
     def rss_attributes(self):
         attr = super().rss_attributes()
@@ -33,6 +34,12 @@ class iTunesFeed(Rss201rev2Feed):
 
 class PodcastFeed(Feed):
     feed_type = iTunesFeed
+
+    # overwrite __call__ to add cache control header
+    def __call__(self, request, *args, **kwargs):
+        response = super().__call__(request, *args, **kwargs)
+        response['Cache-Control'] = 'no-cache, no-store, must-revalidate, private, max-age=0'
+        return response
 
     def get_object(self, request, slug):
         return Podcast.objects.get(slug=slug)

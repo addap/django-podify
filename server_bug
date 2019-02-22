@@ -1,4 +1,5 @@
 # this happened after I select 'Refresh content from rss' on a podcast episode in podcast addict
+# it happened because I had a failed migration from date to datetime and pub_dates were set to null
 
 /home/adrian/.virtualenvs/django-podify/bin/python /home/adrian/programming/django-podify/manage.py runserver 0:8000
 Performing system checks...

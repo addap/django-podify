@@ -20,7 +20,7 @@ TODO: look at generic view object_detail, object_list
 DONE: Delete files when podcast/episode is deleted
         Using pre_delete signal to delete everything
 
-TODO: cache-control headers in rss response so that firefox doesn't cache them. Content-type can be controller by setting
+DONE: cache-control headers in rss response so that firefox doesn't cache them. Content-type can be controller by setting
         the content_type field in my feed generator but for the cache-control head I probably need to write a new view
         that instantiates that generator, generates a feed and then sends it using HttpResponse where I can set the headers.
         harmontown uses: Cache-control: no-cache, no-store, must-revalidate, private, max-age=0
@@ -33,7 +33,7 @@ DONE: add ignored-episodes list so that episodes that are in a playlist but are 
 DONE: Make it so I can add extra urls to a playlist podcast. Then the YT_PLAYLIST choice becomes moot and together with the ignored-episodes I should just use a urls list as the central object
         Podcast is now unified. It wasn't a good abstraction to begin with
 
-TODO: deploy on my raspberrypi using lighttpd or nginx
+TODO: deploy on my raspberrypi using lighttpd or apache
 
 TODO: write tests
     - add podcast
@@ -41,4 +41,3 @@ TODO: write tests
     - download podcast (preferably small files)
     - delete podcast
     - check generated rss
-    

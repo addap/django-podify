@@ -36,3 +36,11 @@ def episode_download(request, slug, episode_id):
                             content_type='audio/mpeg3')
     else:
         raise Http404("Episode not downloaded yet!")
+
+
+# def podcast_rss(request, slug):
+#     """Returns the generated rss feed for the podcast with slug slug. """
+#     feedgen = PodcastFeed()
+#     feed = feedgen(request, slug)
+#     feed['Cache-Control'] = 'no-cache, no-store, must-revalidate, private, max-age=0'
+#     return feed
