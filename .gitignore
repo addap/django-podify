@@ -119,7 +119,9 @@ dmypy.json
 # emacs temp files
 *~
 api-key
+secret-key
 
 # pycharm directory
 .idea/
 media/
+static/admin

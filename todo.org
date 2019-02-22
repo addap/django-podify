@@ -37,7 +37,7 @@ DONE: deploy on my raspberrypi using lighttpd or apache
 	apache config in /etc/apache2/sites-available/000-default.conf
 	In the end I did it like https://www.digitalocean.com/community/tutorials/how-to-serve-django-applications-with-apache-and-mod_wsgi-on-ubuntu-14-04#configure-apache
 	but apparently the difficulties I had earlier when using the django documentation were a result relative paths when reading the api key and had nothing per se to do with apache
-TODO: put django's secret key in separate file like api key
+DONE: generate new secret key and put it in separate file like api key
 TODO: maybe use mod_wsgi python package again and copy it to apache. Or just ue it on my dev machine to test locally
 TODO: find out if apache supports reload-on-changes from the mod_wsgi python package, sounds interesting
 
