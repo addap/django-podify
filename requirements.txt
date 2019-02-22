@@ -1,10 +1,7 @@
-beautifulsoup4==4.7.1
-bs4==0.0.1
 certifi==2018.11.29
 chardet==3.0.4
 Django==2.1.5
-ffmpeg-python==0.1.17
-future==0.17.1
+future-fstrings==0.4.5
 idna==2.8
 lxml==4.3.1
 pafy==0.5.4

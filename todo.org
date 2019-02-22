@@ -6,7 +6,7 @@ from https://superuser.com/questions/100288/how-can-i-check-the-integrity-of-a-v
 just do it until I find another faulty one 
 
 DONE: Don't download webm encoded videos, my podcast app and the internal android music player cannot skip to a specific timecode with these files. Use mp4,m4a etc instead
-TODO: try-except around downloading of youtube video
+DONE: try-except around downloading of youtube video
 
 
 TODO: implement logging
@@ -32,3 +32,13 @@ DONE: add ignored-episodes list so that episodes that are in a playlist but are 
         in a playlist are filtered out by pafy automatically
 DONE: Make it so I can add extra urls to a playlist podcast. Then the YT_PLAYLIST choice becomes moot and together with the ignored-episodes I should just use a urls list as the central object
         Podcast is now unified. It wasn't a good abstraction to begin with
+
+TODO: deploy on my raspberrypi using lighttpd or nginx
+
+TODO: write tests
+    - add podcast
+    - update podcast
+    - download podcast (preferably small files)
+    - delete podcast
+    - check generated rss
+    
