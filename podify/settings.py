@@ -129,5 +129,3 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'static/')
 # MEDIA_ROOT = '/home/adrian/programming/django-podify/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media/')
 MEDIA_URL = '/media/'
-
-SERVER_URL = 'http://192.168.188.21'

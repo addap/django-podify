@@ -2,9 +2,9 @@
 from django.contrib.syndication.views import Feed
 from django.urls import reverse
 from django.utils.feedgenerator import Rss201rev2Feed
+from django.http.request import HttpRequest
 
 from .models import Podcast, Episode
-from podify.settings import SERVER_URL, MEDIA_ROOT
 
 
 class iTunesFeed(Rss201rev2Feed):
@@ -36,6 +36,7 @@ class iTunesFeed(Rss201rev2Feed):
 
 class PodcastFeed(Feed):
     feed_type = iTunesFeed
+    host = None
 
     # overwrite __call__ to add cache control header
     def __call__(self, request, *args, **kwargs):
@@ -43,8 +44,9 @@ class PodcastFeed(Feed):
         response['Cache-Control'] = 'no-cache, no-store, must-revalidate, private, max-age=0'
         return response
 
-    def get_object(self, request, slug):
-        return Podcast.objects.get(slug=slug)
+    def get_object(self, request: HttpRequest, **kwargs):
+        self.host = request.get_host()
+        return Podcast.objects.get(slug=kwargs['slug'])
 
     def title(self, podcast: Podcast):
         return podcast.name
@@ -74,7 +76,7 @@ class PodcastFeed(Feed):
         return reverse('podcasts:episode-download', kwargs={'slug': episode.podcast.slug, 'episode_id': episode.id})
 
     def item_enclosure_url(self, episode: Episode):
-        return f'{SERVER_URL}{episode.mp3.url}'
+        return f'{self.host}{episode.mp3.url}'
 
     def item_enclosure_length(self, episode: Episode):
         return episode.mp3.size
