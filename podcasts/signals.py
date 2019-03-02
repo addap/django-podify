@@ -17,3 +17,5 @@ def episode_delete_files(sender, **kwargs):
     episode = kwargs['instance']
     if episode.mp3:
         os.remove(episode.mp3.path)
+    if episode.image:
+        os.remove(episode.image.path)

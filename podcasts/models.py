@@ -97,16 +97,20 @@ class Podcast(models.Model):
                 episode.save()
                 continue
 
-            if not self.image:
-                req = requests.get(p.thumb)
-                self.image.save(f'{self.slug}.jpg', ContentFile(req.content))
-
             episode.name = p.title
-            episode.slug = slugify(p.title)
+            if not episode.slug:
+                episode.slug = slugify(p.title)
             episode.pub_date = datetime.fromisoformat(p.published)
             episode.duration = timedelta(seconds=p.length)
             episode.description = p.description
             episode.video_id = p.videoid
+
+            if not episode.image:
+                req = requests.get(p.thumb)
+                episode.image.save(f'{episode.slug}.jpg', ContentFile(req.content))
+                if not self.image:
+                    self.image.save(f'{self.slug}.jpg', episode.image)
+
             episode.save()
 
         return f"Updated podcast {self}"
@@ -129,6 +133,7 @@ class Episode(models.Model):
     pub_date = models.DateTimeField(blank=True, null=True)
     duration = models.DurationField(blank=True, null=True)
     invalid = models.BooleanField(default=False)
+    image = models.ImageField(upload_to='thumbnails', blank=True)
 
     # Foreign Key is associated podcast
     podcast = models.ForeignKey(Podcast, on_delete=models.CASCADE)

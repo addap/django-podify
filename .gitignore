@@ -124,4 +124,4 @@ secret-key
 # pycharm directory
 .idea/
 media/
-static/admin
+static/

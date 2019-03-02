@@ -23,13 +23,15 @@ class iTunesFeed(Rss201rev2Feed):
             handler.addQuickElement('url', self.feed['image'].url)
             handler.addQuickElement('title', f"{self.feed['title']}'s Picture")
             handler.endElement('image')
-            handler.addQuickElement('itunes:image', self.feed['image'].url)
+            handler.startElement('itunes:image', {'href': self.feed['image'].url})
+            handler.endElement('itunes:image')
 
     def add_item_elements(self, handler, item):
         super().add_item_elements(handler, item)
         handler.addQuickElement('itunes:duration', str(item['duration']))
-        # if item['image']:
-        #     handler.addQuickElement('itunes:image', item['image'].url)
+        if item['image']:
+            handler.startElement('itunes:image', {'href': item['image'].url})
+            handler.endElement('itunes:image')
 
 
 class PodcastFeed(Feed):
@@ -89,5 +91,5 @@ class PodcastFeed(Feed):
     def item_extra_kwargs(self, episode: Episode):
         return {
             'duration': episode.duration,
-            # 'image': episode.image,
+            'image': episode.image,
         }

@@ -41,6 +41,8 @@ DONE: generate new secret key and put it in separate file like api key
 TODO: maybe use mod_wsgi python package again and copy it to apache. Or just ue it on my dev machine to test locally
 TODO: find out if apache supports reload-on-changes from the mod_wsgi python package, sounds interesting
 
+TODO: add functionality to specify folder with mp3s to create a podcast from. Have to read up on forms for that
+TODO: add set_invalid button to episodes (OR save youtube-id upon deletion so that they do not get readded in the next update)
 
 TODO: write tests
     - add podcast
