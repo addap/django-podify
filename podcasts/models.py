@@ -9,6 +9,7 @@ from django.core.files.base import ContentFile
 from django.db import models
 import subprocess
 from django.utils.text import slugify
+from time import strptime
 
 from podify.settings import MEDIA_ROOT
 
@@ -78,13 +79,7 @@ class Podcast(models.Model):
             # add new episodes
             for video in playlist:
                 self.episode_set.update_or_create(video_id=video.videoid, defaults={
-                    'name': video.title,
-                    'slug': slugify(video.title),
                     'url': f"{YOUTUBE_BASE}{video.videoid}",
-                    'pub_date': datetime.fromisoformat(video.published),
-                    'duration': timedelta(seconds=video.length),
-                    'video_id': video.videoid,
-                    'description': video.description,
                 })
 
         # iterate over all episodes, even the ones from the playlist, because get_playlist2 in some instances still
@@ -98,9 +93,11 @@ class Podcast(models.Model):
                 continue
 
             episode.name = p.title
+
             if not episode.slug:
                 episode.slug = slugify(p.title)
-            episode.pub_date = datetime.fromisoformat(p.published)
+            pub_date = datetime(*strptime(p.published, "%Y-%m-%d %H:%M:%S")[:6])
+            episode.pub_date = pub_date
             episode.duration = timedelta(seconds=p.length)
             episode.description = p.description
             episode.video_id = p.videoid
@@ -163,6 +160,8 @@ class Episode(models.Model):
                 ydl.download([self.url])
         except youtube_dl.DownloadError as e:
             #todo do something? How can I return errors from admin actions?
+            with open("download-error", "w") as f:
+                f.write(str(e))
             print(e)
             self.invalid = True
             self.save()
