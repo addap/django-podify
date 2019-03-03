@@ -1,8 +1,8 @@
 # -*- coding: future_fstrings -*-
 from django.contrib.syndication.views import Feed
+from django.http.request import HttpRequest
 from django.urls import reverse
 from django.utils.feedgenerator import Rss201rev2Feed
-from django.http.request import HttpRequest
 
 from .models import Podcast, Episode
 

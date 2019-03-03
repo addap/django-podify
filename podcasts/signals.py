@@ -1,5 +1,5 @@
-from django.db.models.signals import pre_delete
 import os
+from django.db.models.signals import pre_delete
 from django.dispatch import receiver
 
 from podcasts.models import Podcast, Episode
