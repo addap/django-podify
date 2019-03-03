@@ -1,0 +1,10 @@
+{% extends 'podcasts/base.html' %}
+{% block title %}Add Podcast{% endblock title %}
+
+{% block content %}
+<form action="{% url 'podcasts:add-podcast' %}" method="post">
+{% csrf_token %}
+{{ form.as_ul }}
+<input type="submit" value="Add">
+</form>
+{% endblock content %}

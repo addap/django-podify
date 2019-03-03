@@ -1,50 +1,58 @@
 
 
-DONE: Check integrity of mp3 using
+* DONE: Check integrity of mp3 using
 ffmpeg -v error -i not_DSL_macros_-_Christophe_Grand.mp3 -f null -
 from https://superuser.com/questions/100288/how-can-i-check-the-integrity-of-a-video-file-avi-mpeg-mp4 
 just do it until I find another faulty one 
 
-DONE: Don't download webm encoded videos, my podcast app and the internal android music player cannot skip to a specific timecode with these files. Use mp4,m4a etc instead
-DONE: try-except around downloading of youtube video
+* DONE: Don't download webm encoded videos, my podcast app and the internal android music player cannot skip to a specific timecode with these files. Use mp4,m4a etc instead
+* DONE: try-except around downloading of youtube video
 
 
-TODO: implement logging
-DONE: use django's builtin rss generator
+* TODO: implement logging
+* DONE: use django's builtin rss generator
 
-DONE: try out domain-less url in enclosure. my podcatcher seems to be able to find the thumbnail using only the /media/... part
+* DONE: try out domain-less url in enclosure. my podcatcher seems to be able to find the thumbnail using only the /media/... part
         Does not work, probably because the enclosure url can be an arbitrary url that does not need to belong to the same url
 
-TODO: look at generic view object_detail, object_list
+* TODO: look at generic view object_detail, object_list
 
-DONE: Delete files when podcast/episode is deleted
+* DONE: Delete files when podcast/episode is deleted
         Using pre_delete signal to delete everything
 
-DONE: cache-control headers in rss response so that firefox doesn't cache them. Content-type can be controller by setting
+* DONE: cache-control headers in rss response so that firefox doesn't cache them. Content-type can be controller by setting
         the content_type field in my feed generator but for the cache-control head I probably need to write a new view
         that instantiates that generator, generates a feed and then sends it using HttpResponse where I can set the headers.
         harmontown uses: Cache-control: no-cache, no-store, must-revalidate, private, max-age=0
         https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cache-Control?utm_source=mozilla&utm_medium=devtools-netmonitor&utm_campaign=default
 
-DONE: add ignored-episodes list so that episodes that are in a playlist but are no longer available/I deleted them in the admin panel do not get put into the episode list again during an update
+* DONE: add ignored-episodes list so that episodes that are in a playlist but are no longer available/I deleted them in the admin panel do not get put into the episode list again during an update
         Not easily possible to have list fields with sqlite, instead just add an invalid flag to episode. But not a great
         solution either because now I have to filter them out every time. I should just delete them since invalid videos
         in a playlist are filtered out by pafy automatically
-DONE: Make it so I can add extra urls to a playlist podcast. Then the YT_PLAYLIST choice becomes moot and together with the ignored-episodes I should just use a urls list as the central object
+* DONE: Make it so I can add extra urls to a playlist podcast. Then the YT_PLAYLIST choice becomes moot and together with the ignored-episodes I should just use a urls list as the central object
         Podcast is now unified. It wasn't a good abstraction to begin with
 
-DONE: deploy on my raspberrypi using lighttpd or apache
+* DONE: deploy on my raspberrypi using lighttpd or apache
 	apache config in /etc/apache2/sites-available/000-default.conf
 	In the end I did it like https://www.digitalocean.com/community/tutorials/how-to-serve-django-applications-with-apache-and-mod_wsgi-on-ubuntu-14-04#configure-apache
 	but apparently the difficulties I had earlier when using the django documentation were a result relative paths when reading the api key and had nothing per se to do with apache
-DONE: generate new secret key and put it in separate file like api key
-TODO: maybe use mod_wsgi python package again and copy it to apache. Or just ue it on my dev machine to test locally
-TODO: find out if apache supports reload-on-changes from the mod_wsgi python package, sounds interesting
+* DONE: generate new secret key and put it in separate file like api key
+* TODO: maybe use mod_wsgi python package again and copy it to apache. Or just ue it on my dev machine to test locally
+* TODO: find out if apache supports reload-on-changes from the mod_wsgi python package, sounds interesting
 
-TODO: add functionality to specify folder with mp3s to create a podcast from. Have to read up on forms for that
-TODO: add set_invalid button to episodes (OR save youtube-id upon deletion so that they do not get readded in the next update)
+* DONE: add form to create podcasts with
+** DONE: folder with mp3s
+** DONE: playlist url
+** TODO: extract description, images and more from the mp3s
 
-TODO: write tests
+
+* DONE: make invalid a read/write field (OR save youtube-id upon deletion so that they do not get readded in the next update)
+        But I don't hve a listField field for a model. The only way I know would be with another invalidEpisode class that has podcast as a foreign key
+        and that just would not be nice
+        Decided to just make invalid field writable for now
+
+* TODO: write tests
     - add podcast
     - update podcast
     - download podcast (preferably small files)

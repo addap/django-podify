@@ -1,6 +1,13 @@
 # -*- coding: future_fstrings -*-
+from django.core.files import File
+from django.http import FileResponse, Http404, HttpResponseRedirect
 from django.shortcuts import render, get_object_or_404
-from django.http import FileResponse, HttpResponse, Http404
+from django.urls import reverse
+
+import os
+from django.utils.text import slugify
+
+from .forms import AddPodcastForm
 from .models import Podcast, Episode
 
 
@@ -11,6 +18,35 @@ def index(request):
     return render(request,
                   template_name,
                   context={'podcast_list': podcast_list})
+
+
+def add_podcast(request):
+    template_name = 'podcasts/add-podcast.html'
+    if request.method == "POST":
+        form = AddPodcastForm(request.POST)
+
+        if form.is_valid():
+            podcast = form.save()
+
+            if form.cleaned_data['mp3_source']:
+                mp3s = os.listdir(form.cleaned_data['mp3_source'])
+                for mp3 in mp3s:
+                    name = os.path.splitext(mp3)[0]
+                    slug = slugify(name)
+                    episode = podcast.episode_set.create(name=name,
+                                                         slug=slug,
+                                                         downloaded=True,)
+                    with File(open(os.path.join(form.cleaned_data['mp3_source'], mp3), "rb")) as f:
+                        episode.mp3.save(f"{slug}.mp3", f)
+
+            # todo remove old files?
+
+            index_url = reverse('podcasts:index')
+            return HttpResponseRedirect(index_url)
+    else:
+        form = AddPodcastForm()
+
+    return render(request, template_name, {'form': form})
 
 
 def podcast_detail(request, slug):

@@ -7,10 +7,9 @@ from datetime import timedelta, datetime
 from django.core.files import File
 from django.core.files.base import ContentFile
 from django.db import models
-import subprocess
 from django.utils.text import slugify
 
-from podify.settings import MEDIA_ROOT
+from podify.settings import MEDIA_ROOT, BASE_DIR
 
 YOUTUBE_BASE = 'https://www.youtube.com/watch?v='
 
@@ -126,8 +125,8 @@ class Episode(models.Model):
     name = models.CharField(max_length=100, blank=True)
     slug = models.SlugField(max_length=100, blank=True)
     description = models.TextField(blank=True)
-    url = models.URLField()
-    video_id = models.CharField(max_length=11, blank=True, unique=True)
+    url = models.URLField(blank=True)
+    video_id = models.CharField(max_length=11, blank=True, unique=True, null=True)
     mp3 = models.FileField(upload_to='mp3s', blank=True)
     downloaded = models.BooleanField(default=False)
     pub_date = models.DateTimeField(blank=True, null=True)
