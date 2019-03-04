@@ -9,6 +9,8 @@ from django.core.files.base import ContentFile
 from django.db import models
 from django.utils.text import slugify
 from time import strptime
+import pytz
+from django.utils.timezone import make_aware, get_current_timezone_name
 
 from podify.settings import MEDIA_ROOT, BASE_DIR
 
@@ -95,8 +97,9 @@ class Podcast(models.Model):
 
             if not episode.slug:
                 episode.slug = slugify(p.title)
+            tz = pytz.timezone(get_current_timezone_name())
             pub_date = datetime(*strptime(p.published, "%Y-%m-%d %H:%M:%S")[:6])
-            episode.pub_date = pub_date
+            episode.pub_date = make_aware(pub_date, tz, is_dst=True)
             episode.duration = timedelta(seconds=p.length)
             episode.description = p.description
             episode.video_id = p.videoid
