@@ -73,7 +73,7 @@ class Podcast(models.Model):
             # first video
             if len(playlist) > 0 and not self.image:
                 req = requests.get(playlist[0].thumb)
-                self.image.save(f'{self.slug}.jpg', ContentFile(req.content))
+                self.image.save(f'{self.slug}.jpg', ContentFile(req.content), save=False)
 
             # add new episodes
             for video in playlist:
@@ -103,9 +103,9 @@ class Podcast(models.Model):
 
             if not episode.image:
                 req = requests.get(p.thumb)
-                episode.image.save(f'{episode.slug}.jpg', ContentFile(req.content))
+                episode.image.save(f'{episode.slug}.jpg', ContentFile(req.content), save=False)
                 if not self.image:
-                    self.image.save(f'{self.slug}.jpg', episode.image)
+                    self.image.save(f'{self.slug}.jpg', episode.image, save=False)
 
             episode.save()
 
@@ -178,7 +178,7 @@ class Episode(models.Model):
             #     pass
 
         with File(open(filename, "rb")) as f:
-            self.mp3.save(f"{self.slug}.mp3", f)
+            self.mp3.save(f"{self.slug}.mp3", f, save=False)
 
         os.remove(filename)
         self.downloaded = True

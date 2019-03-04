@@ -52,9 +52,11 @@ just do it until I find another faulty one
         and that just would not be nice
         Decided to just make invalid field writable for now
 
-* TODO: write tests
+* DONE: write tests
     - add podcast
     - update podcast
     - download podcast (preferably small files)
     - delete podcast
     - check generated rss
+* TODO
+    - check rss after adding another episode

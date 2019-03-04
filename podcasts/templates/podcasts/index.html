@@ -3,9 +3,13 @@
 {% block content %}
 <h1>Podcasts</h1>
 <a href="{% url 'podcasts:add-podcast' %}">Add Podcast</a>
+    {% if podcast_list %}
 <ul>
 {% for podcast in podcast_list %}
 <li><a href="{% url 'podcasts:podcast-detail' podcast.slug %}">{{ podcast.name }}</a></li>
 {% endfor %}
 </ul>
+    {% else %}
+    <p>No podcasts available</p>
+    {% endif %}
 {% endblock content %}
