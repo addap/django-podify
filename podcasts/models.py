@@ -47,7 +47,7 @@ class Podcast(models.Model):
 
     def download_podcast(self):
         self.update_podcast()
-        for episode in self.episode_set.filter(invalid=False):
+        for episode in self.episode_set.filter(invalid=False, downloaded=False):
             episode.download()
         return f"Downloaded podcast {self}"
 
@@ -103,6 +103,12 @@ class Podcast(models.Model):
             episode.duration = timedelta(seconds=p.length)
             episode.description = p.description
             episode.video_id = p.videoid
+            # check if file exists https://stackoverflow.com/a/41299294
+            if episode.mp3:
+                exists = bool(episode.mp3.storage.exists(episode.mp3.name))
+                if not exists:
+                    episode.mp3 = None
+                episode.downloaded = exists
 
             if not episode.image:
                 req = requests.get(p.thumb)
