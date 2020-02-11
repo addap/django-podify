@@ -1,6 +1,6 @@
 certifi==2018.11.29
 chardet==3.0.4
-Django==2.1.5
+Django==2.2.10
 future-fstrings==0.4.5
 idna==2.8
 lxml==4.3.1
