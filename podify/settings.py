@@ -119,6 +119,10 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
+SECURE_REFERRER_POLICY = 'same-origin'
+
 # Internationalization
 # https://docs.djangoproject.com/en/2.1/topics/i18n/
 
