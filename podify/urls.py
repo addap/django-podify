@@ -19,8 +19,6 @@ from django.contrib import admin
 from django.urls import path, include
 from django.views.generic import RedirectView
 
-# todo the + static(...) line is to be only used in development
-
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('favicon.ico',

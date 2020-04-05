@@ -6,3 +6,4 @@ media/
 docker-compose.yml
 Dockerfile
 **/.git
+Readme.md
