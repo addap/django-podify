@@ -13,7 +13,7 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         podcast_id = options['podcast_id']
         download = options['download']
-        
+
         if podcast_id:
             podcast_set = Podcast.objects.filter(pk__in=podcast_id)
         else:
@@ -30,4 +30,3 @@ class Command(BaseCommand):
             #     raise CommandError(f"Podcast with id {podcast_id} does not exist")
             except ValueError as err:
                 raise CommandError(err)
-
