@@ -10,10 +10,16 @@ services:
     networks:
       - default
       - podify_net
+    volumes:
+      - podify_db:/code/db
+      - podify_media:/code/media
   redis:
     image: redis:5.0.8
     networks:
       - default
+volumes:
+  podify_db:
+  podify_media:
 networks:
   podify_net:
     external:
