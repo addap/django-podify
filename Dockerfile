@@ -28,13 +28,6 @@ RUN set -ex \
 
 FROM python:3.8-slim
 
-RUN mkdir /code/
-WORKDIR /code/
-
-# Create a group and user to run our app
-ARG APP_USER=appuser
-RUN groupadd -r ${APP_USER} && useradd --no-log-init -r -g ${APP_USER} ${APP_USER}
-
 # Install packages needed to run your application (not build deps):
 #   mime-support -- for mime types when serving static files
 #   postgresql-client -- for running database commands
@@ -50,6 +43,13 @@ RUN set -ex \
 #    && seq 1 8 | xargs -I{} mkdir -p /usr/share/man/man{} \
     && apt-get update && apt-get install -y --no-install-recommends $RUN_DEPS \
     && rm -rf /var/lib/apt/lists/*
+
+RUN mkdir /code/ /code/db/ /code/media/
+WORKDIR /code/
+
+# Create a group and user to run our app
+ARG APP_USER=appuser
+RUN groupadd -r ${APP_USER} && useradd --no-log-init -r -g ${APP_USER} ${APP_USER}
 
 COPY --from=builder /code/wheels ./wheels
 COPY --from=builder /code/requirements.txt .
@@ -81,7 +81,6 @@ ENV DJANGO_SETTINGS_MODULE=podify.settings \
     UWSGI_WSGI_ENV_BEHAVIOR=holy \
     UWSGI_WORKERS=2 \
     UWSGI_THREADS=4 \
-    UWSGI_STATIC_MAP="/static/=/code/static/" \
     UWSGI_STATIC_EXPIRES_URI="/static/.*\.[a-f0-9]{12,}\.(css|js|png|jpg|jpeg|gif|ico|woff|ttf|otf|svg|scss|map|txt) 315360000"
 
 # Deny invalid hosts before they get to Django (uncomment and change to your hostname(s)):
@@ -96,4 +95,4 @@ USER ${APP_USER}:${APP_USER}
 ENTRYPOINT ["/code/docker-entrypoint.sh"]
 
 # Start uWSGI
-CMD ["uwsgi", "--show-config"]
+CMD ["uwsgi", "--show-config", "--static-map" , "/static/=/code/static", "--static-map", "/media/=/code/media"]
