@@ -38,13 +38,11 @@ just do it until I find another faulty one
 	In the end I did it like https://www.digitalocean.com/community/tutorials/how-to-serve-django-applications-with-apache-and-mod_wsgi-on-ubuntu-14-04#configure-apache
 	but apparently the difficulties I had earlier when using the django documentation were a result relative paths when reading the api key and had nothing per se to do with apache
 * DONE: generate new secret key and put it in separate file like api key
-* TODO: maybe use mod_wsgi python package again and copy it to apache. Or just ue it on my dev machine to test locally
-* TODO: find out if apache supports reload-on-changes from the mod_wsgi python package, sounds interesting
 
 * DONE: add form to create podcasts with
 ** DONE: folder with mp3s
 ** DONE: playlist url
-** TODO: extract description, images and more from the mp3s
+** DONE: extract description, images and more from the mp3s
 
 
 * DONE: make invalid a read/write field (OR save youtube-id upon deletion so that they do not get readded in the next update)
@@ -58,5 +56,3 @@ just do it until I find another faulty one
     - download podcast (preferably small files)
     - delete podcast
     - check generated rss
-* TODO
-    - check rss after adding another episode
