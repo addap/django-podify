@@ -1,6 +1,8 @@
 from django.contrib import admin
+from django_q.tasks import async_task
 
 from podcasts.models import Podcast, Episode
+from podcasts.tasks import podcast_download, podcast_update
 
 
 class EpisodeInline(admin.TabularInline):
@@ -28,17 +30,15 @@ class PodcastAdmin(admin.ModelAdmin):
 
     def update_podcasts(self, request, queryset):
         for podcast in queryset:
-            s = podcast.update_podcast()
-            self.message_user(request, s)
-            podcast.save()
+            async_task(podcast_update, podcast.pk)
+            self.message_user(request, "Updating podcast")
 
     update_podcasts.short_description = "Update selected podcasts"
 
     def download_podcasts(self, request, queryset):
         for podcast in queryset:
-            s = podcast.download_podcast()
-            self.message_user(request, s)
-            podcast.save()
+            async_task(podcast_download, podcast.pk)
+            self.message_user(request, "Downloading podcast")
 
     download_podcasts.short_description = "Download selected podcasts"
 

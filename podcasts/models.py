@@ -11,7 +11,9 @@ from django.utils.text import slugify
 from time import strptime
 import pytz
 from django.utils.timezone import make_aware, get_current_timezone_name
+from django_q.tasks import async_task
 
+from .tasks import episode_download
 from podify.settings import MEDIA_ROOT, BASE_DIR
 
 YOUTUBE_BASE = 'https://www.youtube.com/watch?v='
@@ -119,6 +121,12 @@ class Podcast(models.Model):
             episode.save()
 
         return f"Updated podcast {self}"
+
+    def download(self):
+        for episode in self.episode_set.filter(invalid=False, downloaded=False):
+            async_task(episode_download, episode.pk)
+
+        return f"Downloaded podcast {self}"
 
 
 class Episode(models.Model):

@@ -3,12 +3,11 @@ from django.core.files import File
 from django.http import FileResponse, Http404, HttpResponseRedirect
 from django.shortcuts import render, get_object_or_404
 from django.urls import reverse
+from django_q.tasks import Chain
 
-import os
-from django.utils.text import slugify
-
-from .forms import AddPodcastForm
+from .forms import AddPodcastForm, UploadMP3Form
 from .models import Podcast, Episode
+from .tasks import podcast_download, podcast_update
 
 
 # Create your views here.
@@ -72,7 +71,25 @@ def episode_download(request, slug, episode_id):
                             content_type='audio/mpeg3')
     else:
         raise Http404("Episode not downloaded yet!")
+def podcast_sync_all(request):
+    for podcast in Podcast.objects.all():
+        chain = Chain(cached=True)
+        chain.append(podcast_update, podcast.pk)
+        chain.append(podcast_download, podcast.pk)
+        chain.run()
 
+    return HttpResponseRedirect(reverse('podcasts:index'))
+
+
+def podcast_sync(request, slug):
+    podcast = get_object_or_404(Podcast, slug=slug)
+
+    chain = Chain(cached=True)
+    chain.append(podcast_update, podcast.pk)
+    chain.append(podcast_download, podcast.pk)
+    chain.run()
+
+    return HttpResponseRedirect(reverse('podcasts:podcast-detail', args=(slug,)))
 
 # def podcast_rss(request, slug):
 #     """Returns the generated rss feed for the podcast with slug slug. """
