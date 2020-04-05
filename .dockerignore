@@ -1,0 +1,8 @@
+.env
+.env.dev
+.env.prod
+db.sqlite3
+media/
+docker-compose.yml
+Dockerfile
+**/.git
