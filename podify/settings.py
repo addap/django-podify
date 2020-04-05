@@ -12,22 +12,30 @@ https://docs.djangoproject.com/en/2.1/ref/settings/
 
 import os
 
+import environ
+
+env = environ.Env(
+    DEBUG=(bool, False),
+    ALLOWED_HOSTS=(list, []),
+)
+
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
+env_file = os.path.join(BASE_DIR, '.env.dev')
+if os.path.exists(env_file):
+    environ.Env.read_env(env_file=env_file)
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/2.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-with open (os.path.join(BASE_DIR, "secret-key")) as f:
-    SECRET_KEY = f.readline().strip()
+SECRET_KEY = env('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = env('DEBUG')
 
-ALLOWED_HOSTS = ['*']
-
+ALLOWED_HOSTS = ['localhost', '127.0.0.1'] + env('ALLOWED_HOSTS')
 
 # Application definition
 
@@ -39,6 +47,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'podcasts.apps.PodcastsConfig',
+    'django_q',
 ]
 
 STATICFILES_DIRS = [
@@ -76,17 +85,21 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'podify.wsgi.application'
 
-
 # Database
 # https://docs.djangoproject.com/en/2.1/ref/settings/#databases
 
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+        'ATOMIC_REQUESTS': True,
+        'NAME': os.path.join(BASE_DIR, 'db', 'db.sqlite3'),
     }
 }
 
+Q_CLUSTER = {
+    'catch_up': False,
+    'redis': env('REDIS_URL'),
+}
 
 # Password validation
 # https://docs.djangoproject.com/en/2.1/ref/settings/#auth-password-validators
@@ -106,7 +119,6 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-
 # Internationalization
 # https://docs.djangoproject.com/en/2.1/topics/i18n/
 
@@ -119,7 +131,6 @@ USE_I18N = True
 USE_L10N = True
 
 USE_TZ = True
-
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/2.1/howto/static-files/
