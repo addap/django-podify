@@ -9,7 +9,11 @@
 <li><a href="{% url 'podcasts:podcast-detail' podcast.slug %}">{{ podcast.name }}</a></li>
 {% endfor %}
 </ul>
+        <form action="{% url 'podcasts:podcast-sync-all' %}" method="post">
+            {% csrf_token%}
+        <input type="submit" value="Sync">
+        </form>
     {% else %}
-    <p>No podcasts available</p>
+    <p>No podcasts available.</p>
     {% endif %}
 {% endblock content %}
