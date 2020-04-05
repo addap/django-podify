@@ -10,5 +10,5 @@ urlpatterns = [
     path('add-podcast/', views.add_podcast, name='add-podcast'),
     path('<slug:slug>/', views.podcast_detail, name='podcast-detail'),
     path('<slug:slug>/rss', PodcastFeed(), name='podcast-rss'),
-    path('<slug:slug>/ep/<int:episode_id>', views.episode_download, name='episode-download'),
+    path('podcast/<slug:slug>/ep/<slug:episode_slug>', views.episode_download, name='episode-download'),
 ]

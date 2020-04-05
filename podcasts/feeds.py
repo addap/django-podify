@@ -1,4 +1,3 @@
-# -*- coding: future_fstrings -*-
 from django.contrib.syndication.views import Feed
 from django.http.request import HttpRequest
 from django.urls import reverse
@@ -30,7 +29,7 @@ class iTunesFeed(Rss201rev2Feed):
         super().add_item_elements(handler, item)
         handler.addQuickElement('itunes:duration', str(item['duration']))
         if item['image']:
-            handler.startElement('itunes:image', {'href': item['image'].url})
+            handler.startElement('itunes:image', {'href': f'{item["host"]}{item["image"].url}'})
             handler.endElement('itunes:image')
 
 
@@ -73,7 +72,7 @@ class PodcastFeed(Feed):
         return episode.name
 
     def item_link(self, episode: Episode):
-        return reverse('podcasts:episode-download', kwargs={'slug': episode.podcast.slug, 'episode_id': episode.id})
+        return reverse('podcasts:episode-download', kwargs={'slug': episode.podcast.slug, 'episode_slug': episode.slug})
 
     def item_enclosure_url(self, episode: Episode):
         return f'{self.host}{episode.mp3.url}'
@@ -94,4 +93,5 @@ class PodcastFeed(Feed):
         return {
             'duration': episode.duration,
             'image': episode.image,
+            'host': self.host,
         }
