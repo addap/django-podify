@@ -56,3 +56,8 @@ just do it until I find another faulty one
     - download podcast (preferably small files)
     - delete podcast
     - check generated rss
+** TODO update tests, they probably don't work anymore
+
+* TODO fix headers for media file responses. atm Firefox and my podcast app cannot stream them
+because it does not send the mime type I think. At least that's what firefox was complaining about
+* TODO add sync scheduled task by default (as a migration)
