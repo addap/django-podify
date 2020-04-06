@@ -60,4 +60,9 @@ just do it until I find another faulty one
 
 * TODO fix headers for media file responses. atm Firefox and my podcast app cannot stream them
 because it does not send the mime type I think. At least that's what firefox was complaining about
-* TODO add sync scheduled task by default (as a migration)
+* DONE add sync scheduled task by default (as a migration)
+* DONE move mp3 upload to the admin site
+* DONE add rss link to admin site
+* TODO add more rss feed tags
+* DONE fix urls in rss feed
+* TODO put individual episode updates also in queue then wait for all to finish before download, alternatively chain all the updates and downloads
