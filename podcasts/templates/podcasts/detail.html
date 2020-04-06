@@ -5,12 +5,6 @@
 <img src="{{ podcast.image.url }}" alt="{{ podcast.name }}'s Picture"><br>
 {%  endif %}
     <a href="{% url 'podcasts:podcast-rss' podcast.slug %}">RSS</a>
-
-    <form action="{% url 'podcasts:podcast-detail' podcast.slug %}" method="post" enctype="multipart/form-data">
-        {% csrf_token %}
-        {{ form.as_ul }}
-        <input type="submit" value="Upload">
-    </form>
     <form action="{% url 'podcasts:podcast-sync' podcast.slug %}" method="post">
         {% csrf_token %}
         <input type="submit" value="Sync">

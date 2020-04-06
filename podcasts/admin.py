@@ -1,8 +1,12 @@
 from django.contrib import admin
+from django.utils.html import format_html
+from django.urls import reverse
 from django_q.tasks import async_task
+from multiupload.fields import MultiMediaField
 
-from podcasts.models import Podcast, Episode
-from podcasts.tasks import podcast_download, podcast_update
+from .models import Podcast, Episode
+from .tasks import podcast_download, podcast_update
+from .forms import PodcastModelForm
 
 
 class EpisodeInline(admin.TabularInline):
@@ -13,20 +17,30 @@ class EpisodeInline(admin.TabularInline):
 
 
 class PodcastAdmin(admin.ModelAdmin):
-    class Media:
-        css = {
-            'all': ('css/admin/inline.css',)
-        }
-
+    form = PodcastModelForm
     fieldsets = [
-        (None, {'fields': ['name', 'slug', ]}),
-        ('Metadata', {'fields': ['playlist_url', 'description', 'image', 'pub_date', ]})
+        (None, {'fields': [('name', 'slug',),]}),
+        ('Metadata', {'fields': ['playlist_url', 'description', 'image', 'pub_date', ]}),
+        ('Audio Upload', {'fields': ['audio_upload',]}),
     ]
     readonly_fields = ('pub_date', 'slug',)
     actions = ['update_podcasts', 'download_podcasts', ]
 
     inlines = [EpisodeInline]
-    list_display = ('name',)
+    list_display = ('name', 'rss_link')
+
+    def save_model(self, request, obj, form, change):
+        # save once so that we can create related episodes
+        obj.save()
+        form = PodcastModelForm(request.POST, request.FILES)
+        if form.is_valid():
+            for file in form.cleaned_data['audio_upload']:
+                obj.add_episode_mp3(file)
+
+        super().save_model(request, obj, form, change)
+
+    def rss_link(self, model):
+        return format_html('<a href="{}">RSS</a>', reverse('podcasts:podcast-rss', args=(model.slug,)))
 
     def update_podcasts(self, request, queryset):
         for podcast in queryset:

@@ -3,16 +3,10 @@ from multiupload.fields import MultiMediaField
 
 from .models import Podcast
 
+class PodcastModelForm(forms.ModelForm):
+    # https://github.com/Chive/django-multiupload/
+    audio_upload = MultiMediaField(min_num=1, media_type='audio')
 
-class AddPodcastForm(forms.ModelForm):
     class Meta:
         model = Podcast
-        fields = ['name', 'playlist_url', ]
-
-
-class UploadMP3Form(forms.Form):
-    # https://github.com/Chive/django-multiupload/
-    mp3s = MultiMediaField(
-        min_num=1,
-        media_type='audio'
-    )
+        fields = []

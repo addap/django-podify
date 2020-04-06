@@ -3,12 +3,10 @@ from django.shortcuts import render, get_object_or_404
 from django.urls import reverse
 from django_q.tasks import Chain
 
-from .forms import AddPodcastForm, UploadMP3Form
 from .models import Podcast, Episode
 from .tasks import podcast_download, podcast_update
 
 
-# Create your views here.
 def index(request):
     template_name = 'podcasts/index.html'
     podcast_list = Podcast.objects.all().order_by('pub_date')
@@ -17,37 +15,13 @@ def index(request):
                   context={'podcast_list': podcast_list})
 
 
-def add_podcast(request):
-    if request.method == "POST":
-        form = AddPodcastForm(request.POST)
-
-        if form.is_valid():
-            form.save()
-
-            index_url = reverse('podcasts:index')
-            return HttpResponseRedirect(index_url)
-
-    form = AddPodcastForm()
-    template_name = 'podcasts/add-podcast.html'
-
-    return render(request, template_name, {'form': form})
-
-
 def podcast_detail(request, slug):
     podcast = get_object_or_404(Podcast, slug=slug)
-
-    if request.method == 'POST':
-        form = UploadMP3Form(request.POST, request.FILES)
-        if form.is_valid():
-            for file in form.cleaned_data['mp3s']:
-                podcast.add_episode_mp3(file)
-
-    form = UploadMP3Form()
     template_name = 'podcasts/detail.html'
 
     return render(request,
                   template_name,
-                  context={'podcast': podcast, 'form': form})
+                  context={'podcast': podcast,})
 
 
 def episode_download(request, slug, episode_slug):
