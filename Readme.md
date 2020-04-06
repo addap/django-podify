@@ -24,6 +24,8 @@ DJANGO_SUPERUSER_NAME:
 DJANGO_SUPERUSER_PASSWORD:
 DJANGO_SUPERUSER_EMAIL:
 DJANGO_MANAGEPY_MIGRATE: set to 'on' to migrate everytime the container starts
+SESSION_COOKIE_SECURE= 'False' during development and 'True' during deployment
+CSRF_COOKIE_SECURE= 'False' during development and 'True' during deployment
 ```
 
 then 

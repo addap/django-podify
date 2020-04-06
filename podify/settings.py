@@ -16,6 +16,8 @@ import environ
 
 env = environ.Env(
     DEBUG=(bool, False),
+    CSRF_COOKIE_SECURE=(bool, True),
+    SESSION_COOKIE_SECURE=(bool, True),
     ALLOWED_HOSTS=(list, []),
 )
 
@@ -119,8 +121,8 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-SESSION_COOKIE_SECURE = True
-CSRF_COOKIE_SECURE = True
+SESSION_COOKIE_SECURE = env('SESSION_COOKIE_SECURE')
+CSRF_COOKIE_SECURE = env('CSRF_COOKIE_SECURE')
 SECURE_REFERRER_POLICY = 'same-origin'
 
 # Internationalization
