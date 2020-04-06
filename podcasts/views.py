@@ -36,7 +36,7 @@ def episode_download(request, slug, episode_slug):
 
 def podcast_sync_all(request):
     for podcast in Podcast.objects.all():
-        chain = Chain(cached=True)
+        chain = Chain()
         chain.append(podcast_update, podcast.pk)
         chain.append(podcast_download, podcast.pk)
         chain.run()
@@ -47,7 +47,7 @@ def podcast_sync_all(request):
 def podcast_sync(request, slug):
     podcast = get_object_or_404(Podcast, slug=slug)
 
-    chain = Chain(cached=True)
+    chain = Chain()
     chain.append(podcast_update, podcast.pk)
     chain.append(podcast_download, podcast.pk)
     chain.run()

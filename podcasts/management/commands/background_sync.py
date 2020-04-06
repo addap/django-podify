@@ -21,7 +21,7 @@ class Command(BaseCommand):
 
         for podcast in podcast_set:
             try:
-                chain = Chain(cached=True)
+                chain = Chain()
                 chain.append(podcast_update, podcast.pk)
                 if download:
                     chain.append(podcast_download, podcast.pk)
