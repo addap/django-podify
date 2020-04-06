@@ -24,7 +24,7 @@ class PodcastAdmin(admin.ModelAdmin):
         ('Audio Upload', {'fields': ['audio_upload',]}),
     ]
     readonly_fields = ('pub_date', )
-    actions = ['update_podcasts', 'download_podcasts', ]
+    actions = ['update_podcasts', 'download_podcasts', 'sync_podcasts',]
     prepopulated_fields = {'slug': ('name',)}
 
     inlines = [EpisodeInline]

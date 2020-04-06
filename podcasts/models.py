@@ -199,7 +199,7 @@ class Episode(models.Model):
 
         try:
             with youtube_dl.YoutubeDL(ydl_opts) as ydl:
-                # todo maybe download all episodes at the same time
+                # todo maybe download all episodes at the same time but for that I would need to know the output filename
                 ydl.download([self.url])
         except youtube_dl.DownloadError as e:
             # todo log properly

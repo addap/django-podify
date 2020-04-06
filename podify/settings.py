@@ -101,6 +101,7 @@ DATABASES = {
 Q_CLUSTER = {
     'catch_up': False,
     'redis': env('REDIS_URL'),
+    # 'sync': True,
 }
 
 # Password validation
