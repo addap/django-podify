@@ -1,4 +1,5 @@
 import os
+import os.path
 from datetime import timedelta, datetime
 from io import BytesIO
 from time import strptime
@@ -14,6 +15,7 @@ from django.core.files.base import ContentFile
 from django.db import models
 from django.utils.text import slugify
 from django.utils.timezone import make_aware, get_current_timezone_name
+from django.utils.crypto import get_random_string
 from django_q.tasks import async_task
 
 from podify.settings import MEDIA_ROOT
@@ -45,7 +47,8 @@ class Podcast(models.Model):
         return self.name
 
     def add_episode_mp3(self, mp3):
-        name = mp3.name
+        (name,ext) = os.path.splitext(mp3.name)
+        mp3.name = f'{name}-{get_random_string(10)}{ext}'
         slug = slugify(name)
         pub_date = datetime.now(tz=pytz.timezone(get_current_timezone_name()))
         audio = mutagen.mp3.MP3(mp3, ID3=mutagen.id3.ID3)
@@ -151,9 +154,9 @@ class Episode(models.Model):
             self.save()
             return
 
-        self.name = p.title
+        if not self.name:
+            self.name = p.title
         self.slug = slugify(p.title)
-        print(self.slug)
         tz = pytz.timezone(get_current_timezone_name())
         pub_date = datetime(*strptime(p.published, "%Y-%m-%d %H:%M:%S")[:6])
         self.pub_date = make_aware(pub_date, tz, is_dst=True)
@@ -176,9 +179,11 @@ class Episode(models.Model):
 
     def download(self):
         if self.invalid:
-            raise ValueError("This episode is invalid. Don't try to download it")
+            raise ValueError('This episode is invalid. Don\'t try to download it.')
+        if self.downloaded:
+            raise ValueError('This episode is already downloaded.')
 
-        filename_relative = os.path.join(self.podcast.slug, f'{self.slug}.mp3')
+        filename_relative = os.path.join(self.podcast.slug, f'{self.slug}-{get_random_string(10)}.mp3')
         filename = os.path.join(MEDIA_ROOT, filename_relative)
         ydl_opts = {
             'format': 'bestaudio[ext!=webm]/best[ext!=webm]/[ext!=webm]',
