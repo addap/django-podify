@@ -19,7 +19,6 @@ from django_q.tasks import async_task
 from podify.settings import MEDIA_ROOT
 from .tasks import episode_download
 
-YOUTUBE_BASE = 'https://www.youtube.com/watch?v='
 
 
 def podcast_media_path(instance, filename):
@@ -79,7 +78,6 @@ class Podcast(models.Model):
         """Uses pafy to create episodes from all videos in a playlist."""
         # add all videos from playlist
         if self.playlist_url:
-            print(f'PLAYLIST {self.playlist_url}')
             playlist = pafy.get_playlist2(self.playlist_url)
             self.description = playlist.description
 
@@ -100,12 +98,8 @@ class Podcast(models.Model):
 
             # add new episodes
             for video in playlist:
-                if not self.episode_set.filter(video_id=video.videoid).exists():
-                    self.episode_set.create(
-                        video_id=video.videoid,
-                        url=f'{YOUTUBE_BASE}{video.videoid}',
-                        slug=slugify(video.title),
-                    )
+                if not self.episode_set.filter(url=video.watchv_url).exists():
+                    self.episode_set.create(url=video.watchv_url)
 
         self.save()
 
@@ -134,7 +128,7 @@ class Episode(models.Model):
         mp3: the location of the mp3 file on the server
     """
     name = models.CharField(max_length=100, blank=True)
-    slug = models.SlugField(max_length=100, blank=False)
+    slug = models.SlugField(max_length=100, blank=True)
     description = models.TextField(blank=True)
     url = models.URLField(blank=True)
     video_id = models.CharField(max_length=11, blank=True, null=True)
@@ -153,6 +147,10 @@ class Episode(models.Model):
         return self.name
 
     def update(self):
+        if not self.url:
+            print(f'episode {self.id} does not have a URL.')
+            return
+
         try:
             p = pafy.new(self.url)
         except OSError:
@@ -161,12 +159,13 @@ class Episode(models.Model):
             return
 
         self.name = p.title
+        self.slug = slugify(p.title)
+        print(self.slug)
         tz = pytz.timezone(get_current_timezone_name())
         pub_date = datetime(*strptime(p.published, "%Y-%m-%d %H:%M:%S")[:6])
         self.pub_date = make_aware(pub_date, tz, is_dst=True)
         self.duration = timedelta(seconds=p.length)
         self.description = p.description
-        self.video_id = p.videoid
 
         # check if file still exists https://stackoverflow.com/a/41299294
         if self.mp3:
@@ -180,6 +179,7 @@ class Episode(models.Model):
 
         self.updated = True
         self.save()
+        return f'Episode {self.url} ({self.id}) updated successfully'
 
     def download(self):
         if self.invalid:
@@ -201,9 +201,10 @@ class Episode(models.Model):
 
         try:
             with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+                # todo maybe download all episodes at the same time
                 ydl.download([self.url])
         except youtube_dl.DownloadError as e:
-            # todo do something? How can I return errors from admin actions?
+            # todo log properly
             with open("download-error", "w") as f:
                 f.write(str(e))
             print(e)
@@ -214,4 +215,4 @@ class Episode(models.Model):
         self.mp3 = filename_relative
         self.downloaded = True
         self.save()
-        return "Successfully downloaded"
+        return f'Episode {self.url} ({self.id}) downloaded successfully '
