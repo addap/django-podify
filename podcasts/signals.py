@@ -1,7 +1,7 @@
 import os
 import shutil
 
-from django.db.models.signals import pre_delete
+from django.db.models.signals import pre_delete, pre_save
 from django.dispatch import receiver
 from django_q.signals import pre_enqueue, pre_execute
 
@@ -9,22 +9,24 @@ from podcasts.models import Podcast, Episode
 from podify.settings import MEDIA_ROOT
 
 
+@receiver(pre_save, sender=Podcast, dispatch_uid="creating podcast dir")
+def podcast_create_dir(sender, instance, **kwargs):
+    os.makedirs(os.path.join(MEDIA_ROOT, instance.slug), exist_ok=True)
+
 @receiver(pre_delete, sender=Podcast, dispatch_uid="deleting podcast files")
-def podcast_delete_files(sender, **kwargs):
-    podcast = kwargs['instance']
-    print(f'Podcast {podcast.name} will be deleted')
+def podcast_delete_files(sender, instance, **kwargs):
+    print(f'Podcast {instance.name} will be deleted')
     # remote everything from that podcast, the episode signals will then do nothing
-    shutil.rmtree(os.path.join(MEDIA_ROOT, podcast.slug))
+    shutil.rmtree(os.path.join(MEDIA_ROOT, instance.slug))
 
 
 @receiver(pre_delete, sender=Episode, dispatch_uid="deleting episode files")
-def episode_delete_files(sender, **kwargs):
-    episode = kwargs['instance']
-    print(f'Episode {episode.name} will be deleted')
-    if episode.mp3 and episode.mp3.storage.exists(episode.mp3.name):
-        os.remove(episode.mp3.path)
-    if episode.image and episode.image.storage.exists(episode.image.name):
-        os.remove(episode.image.path)
+def episode_delete_files(sender, instance, **kwargs):
+    print(f'Episode {instance.name} will be deleted')
+    if instance.mp3 and instance.mp3.storage.exists(instance.mp3.name):
+        os.remove(instance.mp3.path)
+    if instance.image and instance.image.storage.exists(instance.image.name):
+        os.remove(instance.image.path)
 
 
 @receiver(pre_enqueue)

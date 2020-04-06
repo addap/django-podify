@@ -41,13 +41,6 @@ class Podcast(models.Model):
     image = models.ImageField(upload_to=podcast_media_path, blank=True)
     pub_date = models.DateTimeField(auto_now_add=True)
 
-    def save(self, *args, **kwargs):
-        """When a podcast is saved for the first time we update once to get the episode urls."""
-        if self._state.adding:
-            self.slug = slugify(self.name)
-            os.makedirs(os.path.join(MEDIA_ROOT, self.slug), exist_ok=True)
-        super().save(*args, **kwargs)  # we have to save once so that we can .create() Episodes when syncing
-
     def __str__(self):
         return self.name
 

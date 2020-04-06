@@ -15,8 +15,6 @@ just do it until I find another faulty one
 * DONE: try out domain-less url in enclosure. my podcatcher seems to be able to find the thumbnail using only the /media/... part
         Does not work, probably because the enclosure url can be an arbitrary url that does not need to belong to the same url
 
-* TODO: look at generic view object_detail, object_list
-
 * DONE: Delete files when podcast/episode is deleted
         Using pre_delete signal to delete everything
 
