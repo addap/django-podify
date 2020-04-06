@@ -17,25 +17,25 @@ class iTunesFeed(Rss201rev2Feed):
 
     def add_root_elements(self, handler):
         super().add_root_elements(handler)
-        if self.feed['image']:
+        if self.feed['image_url']:
             handler.startElement('image', {})
-            handler.addQuickElement('url', self.feed['image'].url)
+            handler.addQuickElement('url', self.feed['image_url'])
             handler.addQuickElement('title', f"{self.feed['title']}'s Picture")
             handler.endElement('image')
-            handler.startElement('itunes:image', {'href': self.feed['image'].url})
+            handler.startElement('itunes:image', {'href': self.feed['image_url']})
             handler.endElement('itunes:image')
 
     def add_item_elements(self, handler, item):
         super().add_item_elements(handler, item)
         handler.addQuickElement('itunes:duration', str(item['duration']))
-        if item['image']:
-            handler.startElement('itunes:image', {'href': f'{item["host"]}{item["image"].url}'})
+        if item['image_url']:
+            handler.startElement('itunes:image', {'href': item['image_url']})
             handler.endElement('itunes:image')
 
 
 class PodcastFeed(Feed):
     feed_type = iTunesFeed
-    host = None
+    request = None
 
     # overwrite __call__ to add cache control header
     def __call__(self, request, *args, **kwargs):
@@ -44,7 +44,7 @@ class PodcastFeed(Feed):
         return response
 
     def get_object(self, request: HttpRequest, **kwargs):
-        self.host = request.get_host()
+        self.request = request
         return Podcast.objects.get(slug=kwargs['slug'])
 
     def title(self, podcast: Podcast):
@@ -63,7 +63,11 @@ class PodcastFeed(Feed):
         return podcast.description
 
     def feed_extra_kwargs(self, podcast: Podcast):
-        return {'image': podcast.image}
+        image_url = None
+        if podcast.image:
+            image_url = self.request.build_absolute_uri(podcast.image.url)
+
+        return {'image_url': image_url}
 
     def items(self, podcast: Podcast):
         return podcast.episode_set.filter(downloaded=True)
@@ -75,7 +79,7 @@ class PodcastFeed(Feed):
         return reverse('podcasts:episode-download', kwargs={'slug': episode.podcast.slug, 'episode_slug': episode.slug})
 
     def item_enclosure_url(self, episode: Episode):
-        return f'{self.host}{episode.mp3.url}'
+        return self.request.build_absolute_uri(episode.mp3.url)
 
     def item_enclosure_length(self, episode: Episode):
         return episode.mp3.size
@@ -90,8 +94,11 @@ class PodcastFeed(Feed):
         return episode.description
 
     def item_extra_kwargs(self, episode: Episode):
+        image_url = None
+        if episode.image:
+            image_url = self.request.build_absolute_uri(episode.image.url)
+
         return {
             'duration': episode.duration,
-            'image': episode.image,
-            'host': self.host,
+            'image_url': image_url,
         }

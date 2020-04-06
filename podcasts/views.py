@@ -79,10 +79,3 @@ def podcast_sync(request, slug):
     chain.run()
 
     return HttpResponseRedirect(reverse('podcasts:podcast-detail', args=(slug,)))
-
-# def podcast_rss(request, slug):
-#     """Returns the generated rss feed for the podcast with slug slug. """
-#     feedgen = PodcastFeed()
-#     feed = feedgen(request, slug)
-#     feed['Cache-Control'] = 'no-cache, no-store, must-revalidate, private, max-age=0'
-#     return feed
