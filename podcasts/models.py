@@ -37,7 +37,7 @@ class Podcast(models.Model):
         The data for a podcast is saved in MEDIA_ROOT/<slug>"""
 
     name = models.CharField(max_length=100)
-    slug = models.CharField(max_length=100, unique=True)
+    slug = models.SlugField(max_length=100, unique=True)
     playlist_url = models.URLField(blank=True)
     description = models.TextField(blank=True)
     image = models.ImageField(upload_to=podcast_media_path, blank=True)
@@ -48,8 +48,8 @@ class Podcast(models.Model):
 
     def add_episode_mp3(self, mp3):
         (name,ext) = os.path.splitext(mp3.name)
-        mp3.name = f'{name}-{get_random_string(10)}{ext}'
-        slug = slugify(name)
+        slug = f'{slugify(name)}-{get_random_string(10)}'
+        mp3.name = slug + ext
         pub_date = datetime.now(tz=pytz.timezone(get_current_timezone_name()))
         audio = mutagen.mp3.MP3(mp3, ID3=mutagen.id3.ID3)
         duration = timedelta(seconds=audio.info.length)
@@ -156,7 +156,7 @@ class Episode(models.Model):
 
         if not self.name:
             self.name = p.title
-        self.slug = slugify(p.title)
+        self.slug = f'{slugify(p.title)}-{get_random_string(10)}'
         tz = pytz.timezone(get_current_timezone_name())
         pub_date = datetime(*strptime(p.published, "%Y-%m-%d %H:%M:%S")[:6])
         self.pub_date = make_aware(pub_date, tz, is_dst=True)
@@ -183,7 +183,7 @@ class Episode(models.Model):
         if self.downloaded:
             raise ValueError('This episode is already downloaded.')
 
-        filename_relative = os.path.join(self.podcast.slug, f'{self.slug}-{get_random_string(10)}.mp3')
+        filename_relative = os.path.join(self.podcast.slug, f'{self.slug}.mp3')
         filename = os.path.join(MEDIA_ROOT, filename_relative)
         ydl_opts = {
             'format': 'bestaudio[ext!=webm]/best[ext!=webm]/[ext!=webm]',
@@ -192,15 +192,14 @@ class Episode(models.Model):
             'embed-thumbnail': True,
             'postprocessors': [{
                 'key': 'FFmpegExtractAudio',
-                'preferredcodec': 'mp3',
                 'preferredquality': '128',
             }],
         }
 
         try:
             with youtube_dl.YoutubeDL(ydl_opts) as ydl:
-                # todo maybe download all episodes at the same time but for that I would need to know the output filename
-                ydl.download([self.url])
+                info = ydl.extract_info(self.url, download=True)
+                filename_final = f'{os.path.splitext(filename_relative)[0]}.{info["ext"]}'
         except youtube_dl.DownloadError as e:
             # todo log properly
             with open("download-error", "w") as f:
@@ -210,7 +209,7 @@ class Episode(models.Model):
             self.save()
             return
 
-        self.mp3 = filename_relative
+        self.mp3 = filename_final
         self.downloaded = True
         self.save()
         return f'Episode {self.url} ({self.id}) downloaded successfully '
