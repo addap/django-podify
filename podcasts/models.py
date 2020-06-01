@@ -160,8 +160,8 @@ class Episode(models.Model):
         self.slug = f'{slugify(p.title)}-{get_random_string(10)}'
         tz = pytz.timezone(get_current_timezone_name())
         # pub_date = datetime(*strptime(p.published, "%Y-%m-%d %H:%M:%S")[:6])
-        pub_date = dateutil.parser.isoparse(p.published)
-        self.pub_date = make_aware(pub_date, tz, is_dst=True)
+        self.pub_date = dateutil.parser.isoparse(p.published)
+        # self.pub_date = make_aware(pub_date, tz, is_dst=True)
         self.duration = timedelta(seconds=p.length)
         self.description = p.description
 
