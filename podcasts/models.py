@@ -87,19 +87,13 @@ class Podcast(models.Model):
             except IndexError:
                 pass
 
-            # try to get an image out of it. This still works even with geo restricted videos so I can safely use the
-            # first video
-            if len(playlist) > 0 and not self.image:
-                req = requests.get(playlist[0].thumb)
-                self.image.save(f'{self.slug}.jpg', ContentFile(req.content), save=False)
-
             # add new episodes
             for video in playlist:
                 if not self.episode_set.filter(url=video.watchv_url).exists():
                     self.episode_set.create(url=video.watchv_url)
 
         self.save()
-
+            
         # how would I throw that into the queue aswell? I could create a group and block unit that's done
         for episode in self.episode_set.filter(invalid=False, updated=False):
             episode.update()
@@ -174,6 +168,9 @@ class Episode(models.Model):
 
         req = requests.get(p.thumb)
         self.image.save(f'{self.slug}.jpg', ContentFile(req.content), save=False)
+        # also set the podcast's image every time I add a new episode. This will probably set it nondeterministically if I
+        # add multiple episodes but I don't care since I just want any picture
+        self.podcast.image.save(f'{self.podcast.slug}.jpg', ContentFile(req.content), save=False)
 
         self.updated = True
         self.save()
