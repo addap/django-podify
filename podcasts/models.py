@@ -174,6 +174,7 @@ class Episode(models.Model):
 
         self.updated = True
         self.save()
+        self.podcast.save()
         return f'Episode {self.url} ({self.id}) updated successfully'
 
     def download(self):
