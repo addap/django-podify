@@ -47,25 +47,28 @@ class Podcast(models.Model):
     def __str__(self):
         return self.name
 
-    def add_episode_file(self, filename):
-        (name, ext) = os.path.splitext(os.path.basename(filename))
-        slug = f'{slugify(name)}-{get_random_string(10)}'
-        mp3name = os.path.join(os.path.dirname(filename), slug + ext)
-        os.rename(filename, mp3name)
+    def add_episode_file(self, filepath):
+        (tmp, ext) = os.path.splitext(filepath)
+        pathname = os.path.dirname(tmp)
+        filename = os.path.basename(tmp)
+
+        slug = f'{slugify(filename)}-{get_random_string(10)}'
+        mp3name = slug + ext
+        os.rename(os.path.join(pathname, filename + ext), os.path.join(pathname, mp3name))
         pub_date = datetime.now(tz=pytz.timezone(get_current_timezone_name()))
-        with open(mp3name, "rb") as f:
+        with open(os.path.join(pathname, mp3name), "rb") as f:
             audio = mutagen.mp3.MP3(f, ID3=mutagen.id3.ID3)
             duration = timedelta(seconds=audio.info.length)
             # save thumbnail separately
             try:
                 b = audio.tags.getall('APIC')[0].data
-                image = File(BytesIO(b), name=f'{name}-thumbnail')
+                image = File(BytesIO(b), name=f'{filename}-thumbnail')
             except:
                 image = None
 
         self.episode_set.create(
-            name=name,
-            mp3=mp3name,
+            name=filename,
+            mp3=os.path.join(os.path.basename(pathname), mp3name),
             slug=slug,
             pub_date=pub_date,
             image=image,
