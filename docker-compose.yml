@@ -2,25 +2,17 @@ version: '3.4'
 
 services:
   web:
-    image: podify:latest
+    image: registry.gitlab.com/addapp/django-podify:v1.4.0
     env_file:
       - .env.prod
     ports:
       - "8000:8000"
-    networks:
-      - default
-      - podify_net
     volumes:
       - podify_db:/code/db
       - podify_media:/code/media
   redis:
     image: redis:5.0.8
-    networks:
-      - default
 volumes:
   podify_db:
   podify_media:
-networks:
-  podify_net:
-    external:
-      name: podify_net
+  

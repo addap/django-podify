@@ -36,7 +36,7 @@ class PodcastAdmin(admin.ModelAdmin):
         form = PodcastModelForm(request.POST, request.FILES)
         if form.is_valid():
             for file in form.cleaned_data['audio_upload']:
-                obj.add_episode_mp3(file)
+                obj.add_episode_upload_mp3(file)
 
         super().save_model(request, obj, form, change)
 
