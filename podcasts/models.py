@@ -23,7 +23,6 @@ from podify.settings import MEDIA_ROOT
 from .tasks import episode_download
 
 
-
 def podcast_media_path(instance, filename):
     return f'{instance.slug}/{filename}'
 
@@ -173,7 +172,8 @@ class Episode(models.Model):
 
         try:
             p = pafy.new(self.url)
-        except OSError:
+        except:
+            print(f'episode {self.id} is invalid. Maybe it\'s age-restricted')
             self.invalid = True
             self.save()
             return
