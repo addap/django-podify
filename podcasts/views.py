@@ -1,4 +1,4 @@
-from django.http import FileResponse, Http404, HttpResponseRedirect
+from django.http import FileResponse, Http404, HttpResponseRedirect, HttpResponse
 from django.shortcuts import render, get_object_or_404
 from django.urls import reverse
 from django_q.tasks import Chain
@@ -29,7 +29,7 @@ def episode_download(request, slug, episode_slug):
 
     if episode.downloaded:
         return FileResponse(episode.mp3, as_attachment=True,
-                            content_type='audio/mpeg3')
+                            content_type='audio/mpeg')
     else:
         raise Http404("Podify: Episode not downloaded yet.")
 
@@ -53,3 +53,17 @@ def podcast_sync(request, slug):
     chain.run()
 
     return HttpResponseRedirect(reverse('podcasts:podcast-detail', args=(slug,)))
+
+
+def dummy_episode_sync(request, slug):
+    podcast = get_object_or_404(Podcast, slug=slug)
+
+    chain = Chain()
+    chain.append(podcast_update, podcast.pk)
+    chain.append(podcast_download, podcast.pk)
+    chain.run()
+
+    # return FileResponse(open('media/dummy.m4a', 'rb'), as_attachment=True,
+    #                     content_type='audio/mpeg')
+
+    return HttpResponse("Sucessfully Updated Podcast", status=418)

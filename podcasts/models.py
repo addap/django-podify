@@ -3,7 +3,6 @@ import os.path
 from datetime import timedelta, datetime
 import dateutil.parser
 from io import BytesIO
-from time import strptime
 
 import mutagen.id3
 import mutagen.mp3
@@ -15,7 +14,7 @@ from django.core.files import File
 from django.core.files.base import ContentFile
 from django.db import models
 from django.utils.text import slugify
-from django.utils.timezone import make_aware, get_current_timezone_name
+from django.utils.timezone import get_current_timezone_name
 from django.utils.crypto import get_random_string
 from django_q.tasks import async_task
 

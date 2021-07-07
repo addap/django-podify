@@ -3,6 +3,9 @@ from django.http.request import HttpRequest
 from django.urls import reverse
 from django.utils.feedgenerator import Rss201rev2Feed
 from django_q.tasks import Chain
+from datetime import timedelta, datetime
+import pytz
+from django.utils.timezone import get_current_timezone_name
 
 from .models import Podcast, Episode
 from .tasks import podcast_update, podcast_download
@@ -35,6 +38,27 @@ class iTunesFeed(Rss201rev2Feed):
             handler.endElement('itunes:image')
 
 
+class RSSEpisode():
+    def __init__(self, **kwargs):
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+
+    @staticmethod
+    def from_episode(e: Episode):
+        re = RSSEpisode(
+            name=e.name,
+            link=reverse('podcasts:episode-download', kwargs={'slug': e.podcast.slug, 'episode_slug': e.slug}),
+            mp3_url=e.mp3.url,
+            mp3_size=e.mp3.size,
+            pub_date=e.pub_date,
+            description=e.description,
+            image=e.image,
+            duration=e.duration,
+        )
+
+        return re
+
+
 class PodcastFeed(Feed):
     feed_type = iTunesFeed
     request = None
@@ -43,17 +67,6 @@ class PodcastFeed(Feed):
     def __call__(self, request, *args, **kwargs):
         response = super().__call__(request, *args, **kwargs)
         response['Cache-Control'] = 'no-cache, no-store, must-revalidate, private, max-age=0'
-
-        # after we calculate the feed we update the podcast
-        # This means we basically have to refresh it twice in the podcatcher but being asynchronous we would have
-        # to do that anyways. (i.e. if I had a dummy episode that I would trigger)
-        podcast = Podcast.objects.get(slug=kwargs['slug'])
-        print('rss induced update')
-
-        chain = Chain()
-        chain.append(podcast_update, podcast.pk)
-        chain.append(podcast_download, podcast.pk)
-        chain.run()
         return response
 
     def get_object(self, request: HttpRequest, **kwargs):
@@ -83,30 +96,43 @@ class PodcastFeed(Feed):
         return {'image_url': image_url}
 
     def items(self, podcast: Podcast):
-        return podcast.episode_set.filter(downloaded=True)
+        dummy_url = reverse('podcasts:dummy-episode-sync', kwargs={'slug': podcast.slug})
+        dummy_episode = RSSEpisode(
+            name="Sync Podcast",
+            link=dummy_url,
+            mp3_url=dummy_url,
+            mp3_size=0,
+            pub_date=datetime.now(tz=pytz.timezone(get_current_timezone_name())),
+            description="Trigger a download of this episode to sync the podcast server-side.\nThe download will fail with code 418.\nAfter a while, new episodes will have been downloaded to the server and you can refresh the RSS feed and download them to the phone.",
+            image=None,
+            duration=timedelta(seconds=0)
+        )
 
-    def item_title(self, episode: Episode):
+        return [dummy_episode] + [RSSEpisode.from_episode(e) for e in podcast.episode_set.filter(downloaded=True)]
+
+    def item_title(self, episode: RSSEpisode):
         return episode.name
 
-    def item_link(self, episode: Episode):
-        return reverse('podcasts:episode-download', kwargs={'slug': episode.podcast.slug, 'episode_slug': episode.slug})
+    def item_link(self, episode: RSSEpisode):
+        return episode.link
 
-    def item_enclosure_url(self, episode: Episode):
-        return self.request.build_absolute_uri(episode.mp3.url)
+    def item_enclosure_url(self, episode: RSSEpisode):
+        return self.request.build_absolute_uri(episode.mp3_url)
 
-    def item_enclosure_length(self, episode: Episode):
-        return episode.mp3.size
+    def item_enclosure_length(self, episode: RSSEpisode):
+        return episode.mp3_size
 
     def item_enclosure_mime_type(self, item):
+        # TODO is this always true? sometimes I download m4a files
         return "audio/mpeg"
 
-    def item_pubdate(self, episode: Episode):
+    def item_pubdate(self, episode: RSSEpisode):
         return episode.pub_date
 
-    def item_description(self, episode: Episode):
+    def item_description(self, episode: RSSEpisode):
         return episode.description
 
-    def item_extra_kwargs(self, episode: Episode):
+    def item_extra_kwargs(self, episode: RSSEpisode):
         image_url = None
         if episode.image:
             image_url = self.request.build_absolute_uri(episode.image.url)
