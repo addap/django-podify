@@ -1,7 +1,7 @@
 from django.urls import path
 
-from podcasts.feeds import PodcastFeed
 from . import views
+from .feeds import PodcastFeed
 
 app_name = 'podcasts'
 urlpatterns = [

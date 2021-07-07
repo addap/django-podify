@@ -2,8 +2,10 @@ from django.contrib.syndication.views import Feed
 from django.http.request import HttpRequest
 from django.urls import reverse
 from django.utils.feedgenerator import Rss201rev2Feed
+from django_q.tasks import Chain
 
 from .models import Podcast, Episode
+from .tasks import podcast_update, podcast_download
 
 
 class iTunesFeed(Rss201rev2Feed):
@@ -41,6 +43,17 @@ class PodcastFeed(Feed):
     def __call__(self, request, *args, **kwargs):
         response = super().__call__(request, *args, **kwargs)
         response['Cache-Control'] = 'no-cache, no-store, must-revalidate, private, max-age=0'
+
+        # after we calculate the feed we update the podcast
+        # This means we basically have to refresh it twice in the podcatcher but being asynchronous we would have
+        # to do that anyways. (i.e. if I had a dummy episode that I would trigger)
+        podcast = Podcast.objects.get(slug=kwargs['slug'])
+        print('rss induced update')
+
+        chain = Chain()
+        chain.append(podcast_update, podcast.pk)
+        chain.append(podcast_download, podcast.pk)
+        chain.run()
         return response
 
     def get_object(self, request: HttpRequest, **kwargs):

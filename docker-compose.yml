@@ -2,7 +2,7 @@ version: '3.4'
 
 services:
   web:
-    image: registry.gitlab.com/addapp/django-podify:v1.4.0
+    image: registry.gitlab.com/addapp/django-podify:v1.4.4
     env_file:
       - .env.prod
     ports:
