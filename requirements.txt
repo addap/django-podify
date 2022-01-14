@@ -31,7 +31,7 @@ requests==2.23.0
 six==1.14.0
 sqlparse==0.3.1
 traitlets==4.3.3
-urllib3==1.25.8
+urllib3==1.26.5
 uWSGI==2.0.18
 wcwidth==0.1.9
 youtube-dl==2021.6.6
