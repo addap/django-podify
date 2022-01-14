@@ -47,9 +47,10 @@ RUN set -ex \
 RUN mkdir /code/ /code/db/ /code/media/
 WORKDIR /code/
 
-# Create a group and user to run our app
+# Create a group and user to run our app.
+# also create home because ytdl wants to write cache files there
 ARG APP_USER=appuser
-RUN groupadd -r ${APP_USER} && useradd --no-log-init -r -g ${APP_USER} ${APP_USER}
+RUN groupadd -r ${APP_USER} && useradd --no-log-init -m -r -g ${APP_USER} ${APP_USER}
 
 COPY --from=builder /code/wheels ./wheels
 COPY --from=builder /code/requirements.txt .
