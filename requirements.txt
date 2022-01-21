@@ -11,7 +11,7 @@ django-environ==0.4.5
 django-picklefield==2.1.1
 django-q==1.2.1
 idna==2.9
-ipython==7.13.0
+ipython==7.16.3
 ipython-genutils==0.2.0
 jedi==0.16.0
 lxml==4.5.0
