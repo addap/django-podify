@@ -1,11 +1,15 @@
 from django.test import TestCase
 from django.urls import reverse
+from django.utils.text import slugify
+from django_q.tasks import result_group
 
 from .models import Podcast
 
 playlist_urls = [
-    ('Podcast normal test', 'https://www.youtube.com/playlist?list=PL-PEOyl2c0APYdsJJz56YZSRmYgJV6K4O'),
-    ('Podcast unavailable test', 'https://www.youtube.com/playlist?list=PL-PEOyl2c0AOYazAq7ohtyu3wF6FOvC4K'),
+    ('Podcast normal test',
+     'https://www.youtube.com/playlist?list=PL-PEOyl2c0APYdsJJz56YZSRmYgJV6K4O'),
+    ('Podcast unavailable test',
+     'https://www.youtube.com/playlist?list=PL-PEOyl2c0AOYazAq7ohtyu3wF6FOvC4K'),
 ]
 
 normal_podcast_rss = b'<?xml version="1.0" encoding="utf-8"?>\n<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd"><channel><title>Normal Podcast</title><link>http://testserver/normal-podcast/</link><description>Podify normal test description</description><atom:link href="http://testserver/normal-podcast/rss" rel="self"></atom:link><language>en-us</language><lastBuildDate>Sat, 28 May 2011 06:51:33 +0000</lastBuildDate><image><url>/media/thumbnails/normal-podcast.jpg</url><title>Normal Podcast\'s Picture</title></image><itunes:image href="/media/thumbnails/normal-podcast.jpg"></itunes:image><item><title>Getting to Know Her</title><link>http://testserver/normal-podcast/ep/1</link><description>There is a battle that rages in all men, between the cordial fellow attempting conversation and the wounded, jealous cad expecting athletic sex in the near-future. Woe unto the red and white Battleship (TM) pieces that are caught in such a crossfire of the soul.\n\nVine: https://vine.co/5sf\nFacebook: https://www.facebook.com/5secondfilms\nTwitter: https://twitter.com/5sf\nInstagram: https://instagram.com/5sf\nSubscribe: https://www.youtube.com/5secondfilms</description><pubDate>Sat, 28 May 2011 06:51:33 +0000</pubDate><guid>http://testserver/normal-podcast/ep/1</guid><enclosure length="128672" type="audio/mpeg" url="testserver/media/mp3s/getting-to-know-her.mp3"></enclosure><itunes:duration>0:00:08</itunes:duration><itunes:image href="/media/thumbnails/getting-to-know-her.jpg"></itunes:image></item></channel></rss>'
@@ -13,52 +17,53 @@ unavailable_podcast_rss = b'<?xml version="1.0" encoding="utf-8"?>\n<rss version
 
 
 def create_podcast(name, url="") -> Podcast:
-    podcast = Podcast(name=name, playlist_url=url)
+    podcast = Podcast(name=name, slug=slugify(name), playlist_url=url)
     podcast.save()
     return podcast
 
 
 class PodcastModelTests(TestCase):
+    playlist_url: str = "https://www.youtube.com/playlist?list=PL-PEOyl2c0AN3e2ZRSXcLrye7k_M0C9cW"
     p1: Podcast = None
-    p2: Podcast = None
 
     def tearDown(self):
         if self.p1:
             self.p1.delete()
-        if self.p2:
-            self.p2.delete()
 
-    def test_playlists(self):
-        """Add the prepared normal playlist, download the video and check if everything worked"""
-        self.p1 = create_podcast("Normal Podcast",
-                                 'https://www.youtube.com/playlist?list=PL-PEOyl2c0APYdsJJz56YZSRmYgJV6K4O')
-        self.p2 = create_podcast("Unavailable Podcast",
-                                 'https://www.youtube.com/playlist?list=PL-PEOyl2c0AOYazAq7ohtyu3wF6FOvC4K')
-        response = self.client.get(reverse('podcasts:index'))
-        self.assertContains(response, self.p1.name)
-        self.assertContains(response, self.p2.name)
+    # def test_create(self):
+    #     self.p1 = create_podcast("Normal Podcast", self.playlist_url)
+    #     response = self.client.get(reverse('podcasts:index'))
+    #     self.assertContains(response, self.p1.name)
 
-    def test_no_playlist(self):
-        response = self.client.get(reverse('podcasts:index'))
-        self.assertContains(response, "No podcasts available")
+    def test_update(self):
+        self.p1 = create_podcast("Normal Podcast", self.playlist_url)
+        self.p1.update()
+        result_group(self.p1.slug, wait=-1)
 
-    def test_podcast_detail(self):
-        self.p1 = create_podcast("Normal Podcast",
-                                 'https://www.youtube.com/playlist?list=PL-PEOyl2c0APYdsJJz56YZSRmYgJV6K4O')
-        response = self.client.get(reverse('podcasts:podcast-detail', args=(self.p1.slug,)))
-        self.assertEqual(response.status_code, 200)
+    # def test_no_playlist(self):
+    #     response = self.client.get(reverse('podcasts:index'))
+    #     self.assertContains(response, "No podcasts available")
 
-    def test_normal_playlist_rss(self):
-        self.p1 = create_podcast("Normal Podcast",
-                                 'https://www.youtube.com/playlist?list=PL-PEOyl2c0APYdsJJz56YZSRmYgJV6K4O')
-        self.p1.download()
-        response = self.client.get(reverse('podcasts:podcast-rss', args=(self.p1.slug,)))
-        self.assertEqual(response.content, normal_podcast_rss)
+    # def test_podcast_detail(self):
+    #     self.p1 = create_podcast("Normal Podcast",
+    #                              'https://www.youtube.com/playlist?list=PL-PEOyl2c0APYdsJJz56YZSRmYgJV6K4O')
+    #     response = self.client.get(
+    #         reverse('podcasts:podcast-detail', args=(self.p1.slug,)))
+    #     self.assertEqual(response.status_code, 200)
 
-    def test_unavailable_playlist_rss(self):
-        self.p1 = create_podcast("Podcast unavailable test",
-                                 'https://www.youtube.com/playlist?list=PL-PEOyl2c0AOYazAq7ohtyu3wF6FOvC4K')
-        self.p1.download()
-        response = self.client.get(reverse('podcasts:podcast-rss', args=(self.p1.slug,)))
-        # print(response.content)
-        self.assertEqual(response.content, unavailable_podcast_rss)
+    # def test_normal_playlist_rss(self):
+    #     self.p1 = create_podcast("Normal Podcast",
+    #                              'https://www.youtube.com/playlist?list=PL-PEOyl2c0APYdsJJz56YZSRmYgJV6K4O')
+    #     self.p1.download()
+    #     response = self.client.get(
+    #         reverse('podcasts:podcast-rss', args=(self.p1.slug,)))
+    #     self.assertEqual(response.content, normal_podcast_rss)
+
+    # def test_unavailable_playlist_rss(self):
+    #     self.p1 = create_podcast("Podcast unavailable test",
+    #                              'https://www.youtube.com/playlist?list=PL-PEOyl2c0AOYazAq7ohtyu3wF6FOvC4K')
+    #     self.p1.download()
+    #     response = self.client.get(
+    #         reverse('podcasts:podcast-rss', args=(self.p1.slug,)))
+    #     # print(response.content)
+    #     self.assertEqual(response.content, unavailable_podcast_rss)

@@ -13,6 +13,7 @@ from podify.settings import MEDIA_ROOT
 def podcast_create_dir(sender, instance, **kwargs):
     os.makedirs(os.path.join(MEDIA_ROOT, instance.slug), exist_ok=True)
 
+
 @receiver(pre_delete, sender=Podcast, dispatch_uid="deleting podcast files")
 def podcast_delete_files(sender, instance, **kwargs):
     print(f'Podcast {instance.name} will be deleted')

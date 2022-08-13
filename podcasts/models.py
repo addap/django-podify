@@ -1,39 +1,36 @@
 import os
 import os.path
 from datetime import timedelta, datetime
-import dateutil.parser
+from time import strptime
 from io import BytesIO
+from PIL import Image
 
 import mutagen.id3
 import mutagen.mp3
-import pafy
 import pytz
 import requests
-import youtube_dl
+import yt_dlp
 from django.core.files import File
 from django.core.files.base import ContentFile
 from django.db import models
 from django.utils.text import slugify
 from django.utils.timezone import get_current_timezone_name
 from django.utils.crypto import get_random_string
-from django_q.tasks import async_task
+from django_q.tasks import async_task, delete_group
+from .ytdl import get_episode_info, get_playlist_info
 
 from podify.settings import MEDIA_ROOT
-from .tasks import episode_download
+from .tasks import episode_update
 
 
 def podcast_media_path(instance, filename):
-    return f'{instance.slug}/{filename}'
+    return os.path.join(instance.slug, filename)
 
 
 # Create your models here.
 class Podcast(models.Model):
     """Model for a podcast
-        name : the name of the podcast
-        url  : the playlist's url if applicable
-        slug : a url friendly version of the name
-
-        The data for a podcast is saved in MEDIA_ROOT/<slug>"""
+The data for a podcast is saved in MEDIA_ROOT/<slug>"""
 
     name = models.CharField(max_length=100)
     slug = models.SlugField(max_length=100, unique=True)
@@ -52,7 +49,7 @@ class Podcast(models.Model):
 
         slug = f'{slugify(filename)}-{get_random_string(10)}'
         mp3name = slug + ext
-        os.rename(os.path.join(pathname, filename + ext), os.path.join(pathname, mp3name))
+        os.rename(filepath, os.path.join(pathname, mp3name))
         pub_date = datetime.now(tz=pytz.timezone(get_current_timezone_name()))
         with open(os.path.join(pathname, mp3name), "rb") as f:
             audio = mutagen.mp3.MP3(f, ID3=mutagen.id3.ID3)
@@ -71,11 +68,12 @@ class Podcast(models.Model):
             pub_date=pub_date,
             image=image,
             duration=duration,
+            # todo change to initialized
             downloaded=True,
             updated=True)
 
     def add_episode_upload_mp3(self, mp3):
-        (name,ext) = os.path.splitext(mp3.name)
+        (name, ext) = os.path.splitext(mp3.name)
         slug = f'{slugify(name)}-{get_random_string(10)}'
         mp3.name = slug + ext
         pub_date = datetime.now(tz=pytz.timezone(get_current_timezone_name()))
@@ -95,68 +93,53 @@ class Podcast(models.Model):
             pub_date=pub_date,
             image=image,
             duration=duration,
+            # todo change to initialized
             downloaded=True,
             updated=True)
 
     def update(self):
-        """Uses pafy to create episodes from all videos in a playlist."""
-        # add all videos from playlist
-        if self.playlist_url:
-            playlist = pafy.get_playlist2(self.playlist_url)
-            self.description = playlist.description
+        """Collect all episodes that we should have and update them in turn."""
+        if not self.playlist_url:
+            return
 
-            # get_playlist2 does not automatically filter out private/deleted videos, for that you have to access at
-            # least one of them
-            # Afaik it filters out private/deleted videos but keeps videos that are claimed by eg UMG but this
-            # is probably because of geo restrictions
-            try:
-                playlist[0]
-            except IndexError:
-                pass
+        info = get_playlist_info(self.playlist_url)
 
-            # add new episodes
-            for video in playlist:
-                if not self.episode_set.filter(url=video.watchv_url).exists():
-                    self.episode_set.create(url=video.watchv_url)
+        self.description = info['description']
+        for episode_info in info['entries']:
+            if self.episode_set.filter(url=episode_info['url']).exists():
+                continue
+            self.episode_set.create(url=episode_info['url'])
+
+        delete_group(self.slug, tasks=True)
+        for episode in self.episode_set.filter(invalid=False, initialized=False):
+            async_task(episode_update, episode.pk, group=self.slug)
 
         self.save()
-            
-        # how would I throw that into the queue aswell? I could create a group and block unit that's done
-        for episode in self.episode_set.filter(invalid=False, updated=False):
-            episode.update()
-
         return f"Updated podcast {self}"
-
-    def download(self):
-        for episode in self.episode_set.filter(invalid=False, downloaded=False):
-            async_task(episode_download, episode.pk)
-
-        return f"Downloaded podcast {self}"
 
 
 def episode_media_path(instance, filename):
-    return f'{instance.podcast.slug}/{filename}'
+    return os.path.join(instance.podcast.slug, filename)
 
 
 class Episode(models.Model):
-    """Model for a podcast episode
-        name: name of the episode
-        url: url of the audio file from where to download it
-        downloaded: boolean whether we have downloaded the file to the server
-        mp3: the location of the mp3 file on the server
-    """
+    """Model for a podcast episode. Each podcast is composed of episodes, which are shown in the RSS feed if they are initialized."""
     name = models.CharField(max_length=100, blank=True)
     slug = models.SlugField(max_length=100, blank=True)
     description = models.TextField(blank=True)
-    url = models.URLField(blank=True)
-    video_id = models.CharField(max_length=11, blank=True, null=True)
     mp3 = models.FileField(upload_to=episode_media_path, blank=True)
-    downloaded = models.BooleanField(default=False)
-    updated = models.BooleanField(default=False)
     pub_date = models.DateTimeField(blank=True, null=True)
     duration = models.DurationField(blank=True, null=True)
-    invalid = models.BooleanField(default=False)
     image = models.ImageField(upload_to=episode_media_path, blank=True)
+
+    # only relevant if downloaded from YT
+    url = models.URLField(blank=True)
+    video_id = models.CharField(max_length=11, blank=True, null=True)
+
+    invalid = models.BooleanField(
+        default=False, help_text='Whether there was an error with the episode. The episode will be disregarded in future operations.')
+    initialized = models.BooleanField(
+        default=False, help_text='Whether the episode metadata & mp3 are present.')
 
     # Foreign Key is associated podcast
     podcast = models.ForeignKey(Podcast, on_delete=models.CASCADE)
@@ -164,71 +147,74 @@ class Episode(models.Model):
     def __str__(self):
         return self.name
 
-    def update(self):
-        if not self.url:
-            print(f'episode {self.id} does not have a URL.')
-            return
-
-        try:
-            p = pafy.new(self.url)
-        except:
-            print(f'episode {self.id} is invalid. Maybe it\'s age-restricted')
-            self.invalid = True
-            self.save()
-            return
-
-        if not self.name:
-            self.name = p.title
-        self.slug = f'{slugify(p.title)}-{get_random_string(10)}'
-        tz = pytz.timezone(get_current_timezone_name())
-        # pub_date = datetime(*strptime(p.published, "%Y-%m-%d %H:%M:%S")[:6])
-        self.pub_date = dateutil.parser.isoparse(p.published)
-        # self.pub_date = make_aware(pub_date, tz, is_dst=True)
-        self.duration = timedelta(seconds=p.length)
-        self.description = p.description
-
-        # check if file still exists https://stackoverflow.com/a/41299294
-        if self.mp3:
+    @property
+    def downloaded(self):
+        """Check if file still exists https://stackoverflow.com/a/41299294"""
+        if not self.invalid and self.mp3:
             exists = bool(self.mp3.storage.exists(self.mp3.name))
             if not exists:
                 self.mp3 = None
-            self.downloaded = exists
+            return exists
+        else:
+            return False
 
-        req = requests.get(p.thumb)
-        self.image.save(f'{self.slug}.jpg', ContentFile(req.content), save=False)
+    def update(self):
+        if not self.url:
+            print(f'Episode {self.id} does not have a URL.')
+            return
+        if self.invalid:
+            print(f'Episode {self.id} is invalid.')
+            return
+        if self.initialized:
+            print(
+                f'Episode {self.id} is already initialized {self.initialized}.')
+            return
+
+        info = get_episode_info(self.url)
+
+        if not self.name:
+            self.name = info['title']
+        self.slug = f'{slugify(self.name)}-{get_random_string(10)}'
+        self.description = info['description']
+
+        tz = pytz.timezone(get_current_timezone_name())
+        self.pub_date = datetime(
+            *strptime(info['upload_date'], "%Y%m%d")[0:6], tzinfo=tz)
+        self.duration = timedelta(seconds=int(info['duration']))
+
+        r = requests.get(info['thumbnail'])
+        # TODO better way to convert to JPG?
+        thumb = ContentFile(r.content)
+        img = Image.open(thumb)
+        thumb_jpg = BytesIO()
+        img.save(thumb_jpg, format="jpeg")
+        self.image.save(f'{self.slug}.jpg', thumb_jpg, save=False)
+
         # also set the podcast's image every time I add a new episode. This will probably set it nondeterministically if I
         # add multiple episodes but I don't care since I just want any picture
-        self.podcast.image.save(f'{self.podcast.slug}.jpg', ContentFile(req.content), save=False)
+        if self.podcast.image:
+            self.podcast.image.delete(save=False)
+        self.podcast.image.save(f'{self.podcast.slug}.jpg', thumb_jpg)
 
-        self.updated = True
-        self.save()
-        self.podcast.save()
-        return f'Episode {self.url} ({self.id}) updated successfully'
-
-    def download(self):
-        if self.invalid:
-            raise ValueError('This episode is invalid. Don\'t try to download it.')
-        if self.downloaded:
-            raise ValueError('This episode is already downloaded.')
-
-        filename_relative = os.path.join(self.podcast.slug, f'{self.slug}.mp3')
+        # download mp3
+        filename_relative = episode_media_path(self, f'{self.slug}.m4a')
         filename = os.path.join(MEDIA_ROOT, filename_relative)
         ydl_opts = {
-            'format': 'bestaudio[ext!=webm]/best[ext!=webm]/[ext!=webm]',
+            'format': 'm4a/bestaudio[ext!=webm]/best[ext!=webm]/[ext!=webm]',
             'outtmpl': filename,
             'quiet': True,
             'embed-thumbnail': True,
             'postprocessors': [{
                 'key': 'FFmpegExtractAudio',
                 'preferredquality': '128',
+                'preferredcodec': 'm4a'
             }],
         }
 
         try:
-            with youtube_dl.YoutubeDL(ydl_opts) as ydl:
-                info = ydl.extract_info(self.url, download=True)
-                filename_final = f'{os.path.splitext(filename_relative)[0]}.{info["ext"]}'
-        except youtube_dl.DownloadError as e:
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                ydl.download(self.url)
+        except yt_dlp.DownloadError as e:
             # todo log properly
             with open("download-error", "w") as f:
                 f.write(str(e))
@@ -237,7 +223,8 @@ class Episode(models.Model):
             self.save()
             return
 
-        self.mp3 = filename_final
-        self.downloaded = True
+        self.mp3 = filename
+        self.initialized = True
+
         self.save()
-        return f'Episode {self.url} ({self.id}) downloaded successfully '
+        return f'Episode {self.url} ({self.id}) updated successfully '

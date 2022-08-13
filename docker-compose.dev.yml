@@ -1,0 +1,18 @@
+version: '3.4'
+
+services:
+  web:
+    image: registry.gitlab.com/addapp/django-podify
+    build: .
+    env_file:
+      - .env.dockerdev
+    ports:
+      - "8000:8000"
+    volumes:
+      - podify_db_dev:/code/db
+      - podify_media_dev:/code/media
+  redis:
+    image: redis:7
+volumes:
+  podify_db_dev:
+  podify_media_dev:

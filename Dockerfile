@@ -56,12 +56,6 @@ COPY --from=builder /code/wheels ./wheels
 COPY --from=builder /code/requirements.txt .
 RUN pip install --no-cache ./wheels/*
 
-COPY . .
-
-# Call collectstatic (customize the following line with the minimal environment variables needed for manage.py to run):
-RUN SECRET_KEY='a' ALLOWED_HOSTS='' REDIS_URL='' API_KEY='' python manage.py collectstatic --noinput
-#RUN SECRET_KEY='a' ALLOWED_HOSTS='' REDIS_URL='' API_KEY='' python manage.py migrate --noinput
-
 # uWSGI will listen on this port
 EXPOSE 8000
 
@@ -83,6 +77,12 @@ ENV DJANGO_SETTINGS_MODULE=podify.settings \
     UWSGI_WORKERS=2 \
     UWSGI_THREADS=4 \
     UWSGI_STATIC_EXPIRES_URI="/static/.*\.[a-f0-9]{12,}\.(css|js|png|jpg|jpeg|gif|ico|woff|ttf|otf|svg|scss|map|txt) 315360000"
+
+COPY . .
+
+# Call collectstatic (customize the following line with the minimal environment variables needed for manage.py to run):
+RUN SECRET_KEY='a' ALLOWED_HOSTS='' REDIS_URL='' API_KEY='' python manage.py collectstatic --noinput
+#RUN SECRET_KEY='a' ALLOWED_HOSTS='' REDIS_URL='' API_KEY='' python manage.py migrate --noinput
 
 # Deny invalid hosts before they get to Django (uncomment and change to your hostname(s)):
 # ENV UWSGI_ROUTE_HOST="^(?!localhost:8000$) break:400"

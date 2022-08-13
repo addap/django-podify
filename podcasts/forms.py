@@ -1,11 +1,12 @@
 from django import forms
-from multiupload.fields import MultiMediaField
 
 from .models import Podcast
 
+
 class PodcastModelForm(forms.ModelForm):
-    # https://github.com/Chive/django-multiupload/
-    audio_upload = MultiMediaField(min_num=1, media_type='audio')
+    '''Form derived from the Podcast model with a multi-file audio upload input.'''
+    audio_upload = forms.FileField(
+        widget=forms.ClearableFileInput(attrs={'multiple': True}))
     audio_upload.required = False
 
     class Meta:

@@ -23,8 +23,8 @@ class Command(BaseCommand):
             try:
                 chain = Chain()
                 chain.append(podcast_update, podcast.pk)
-                if download:
-                    chain.append(podcast_download, podcast.pk)
+                # if download:
+                #     chain.append(podcast_download, podcast.pk)
                 chain.run()
             # except Podcast.DoesNotExist:
             #     raise CommandError(f"Podcast with id {podcast_id} does not exist")

@@ -8,7 +8,7 @@ import pytz
 from django.utils.timezone import get_current_timezone_name
 
 from .models import Podcast, Episode
-from .tasks import podcast_update, podcast_download
+from .tasks import podcast_update
 
 
 class iTunesFeed(Rss201rev2Feed):
@@ -17,20 +17,26 @@ class iTunesFeed(Rss201rev2Feed):
 
     def rss_attributes(self):
         attr = super().rss_attributes()
+        # probably need for the later <itunes:image> attributes.
         attr['xmlns:itunes'] = 'http://www.itunes.com/dtds/podcast-1.0.dtd'
         return attr
 
     def add_root_elements(self, handler):
+        '''Add podcast image information to root element.'''
+        # inspired by http://feeds.soundcloud.com/users/soundcloud:users:473287716/sounds.rss
         super().add_root_elements(handler)
         if self.feed['image_url']:
             handler.startElement('image', {})
             handler.addQuickElement('url', self.feed['image_url'])
             handler.addQuickElement('title', f"{self.feed['title']}'s Picture")
             handler.endElement('image')
-            handler.startElement('itunes:image', {'href': self.feed['image_url']})
+            handler.startElement(
+                'itunes:image', {'href': self.feed['image_url']})
             handler.endElement('itunes:image')
 
     def add_item_elements(self, handler, item):
+        '''Add episode image & duration information to item element.'''
+        # inspired by http://feeds.soundcloud.com/users/soundcloud:users:473287716/sounds.rss
         super().add_item_elements(handler, item)
         handler.addQuickElement('itunes:duration', str(item['duration']))
         if item['image_url']:
@@ -47,7 +53,8 @@ class RSSEpisode():
     def from_episode(e: Episode):
         re = RSSEpisode(
             name=e.name,
-            link=reverse('podcasts:episode-download', kwargs={'slug': e.podcast.slug, 'episode_slug': e.slug}),
+            link=reverse('podcasts:episode-download',
+                         kwargs={'slug': e.podcast.slug, 'episode_slug': e.slug}),
             mp3_url=e.mp3.url,
             mp3_size=e.mp3.size,
             pub_date=e.pub_date,
@@ -96,19 +103,21 @@ class PodcastFeed(Feed):
         return {'image_url': image_url}
 
     def items(self, podcast: Podcast):
-        dummy_url = reverse('podcasts:dummy-episode-sync', kwargs={'slug': podcast.slug})
+        dummy_url = reverse('podcasts:dummy-episode-sync',
+                            kwargs={'slug': podcast.slug})
         dummy_episode = RSSEpisode(
             name="Sync Podcast",
             link=dummy_url,
             mp3_url=dummy_url,
             mp3_size=0,
-            pub_date=datetime.now(tz=pytz.timezone(get_current_timezone_name())),
+            pub_date=datetime.now(tz=pytz.timezone(
+                get_current_timezone_name())),
             description="Trigger a download of this episode to sync the podcast server-side.\nThe download will fail with code 418.\nAfter a while, new episodes will have been downloaded to the server and you can refresh the RSS feed and download them to the phone.",
             image=None,
             duration=timedelta(seconds=0)
         )
 
-        return [dummy_episode] + [RSSEpisode.from_episode(e) for e in podcast.episode_set.filter(downloaded=True)]
+        return [dummy_episode] + [RSSEpisode.from_episode(e) for e in podcast.episode_set.filter(initialized=True)]
 
     def item_title(self, episode: RSSEpisode):
         return episode.name

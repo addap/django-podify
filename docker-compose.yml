@@ -11,7 +11,7 @@ services:
       - podify_db:/code/db
       - podify_media:/code/media
   redis:
-    image: redis:5.0.8
+    image: redis:7
 volumes:
   podify_db:
   podify_media:

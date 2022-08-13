@@ -6,10 +6,5 @@ class PodcastsConfig(AppConfig):
     verbose_name = 'Podcast Manager'
 
     def ready(self):
-        # noinspection PyUnresolvedReferences
+        # import signal connections
         import podcasts.signals
-        import pafy
-        from podify.settings import env
-
-        api_key = env('API_KEY')
-        pafy.set_api_key(api_key)

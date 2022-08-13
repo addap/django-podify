@@ -19,12 +19,13 @@ env = environ.Env(
     CSRF_COOKIE_SECURE=(bool, True),
     SESSION_COOKIE_SECURE=(bool, True),
     ALLOWED_HOSTS=(list, []),
+    REDIS_SYNC=(bool, True),
 )
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-env_file = os.path.join(BASE_DIR, '.env.dev')
+env_file = os.path.join(BASE_DIR, '.env')
 if os.path.exists(env_file):
     environ.Env.read_env(env_file=env_file)
 
@@ -101,7 +102,9 @@ DATABASES = {
 Q_CLUSTER = {
     'catch_up': False,
     'redis': env('REDIS_URL'),
-    # 'sync': True,
+    'sync': env('REDIS_SYNC'),
+    'timeout': 60,
+    'retry': 120,
 }
 
 # Password validation
@@ -147,3 +150,5 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'static/')
 # MEDIA_ROOT = '/home/adrian/programming/django-podify/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media/')
 MEDIA_URL = '/media/'
+
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

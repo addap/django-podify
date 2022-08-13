@@ -4,7 +4,7 @@ from django.urls import reverse
 from django_q.tasks import Chain
 
 from .models import Podcast, Episode
-from .tasks import podcast_download, podcast_update
+from .tasks import podcast_update
 
 
 def index(request):
@@ -21,7 +21,7 @@ def podcast_detail(request, slug):
 
     return render(request,
                   template_name,
-                  context={'podcast': podcast,})
+                  context={'podcast': podcast, })
 
 
 def episode_download(request, slug, episode_slug):
@@ -38,7 +38,7 @@ def podcast_sync_all(request):
     for podcast in Podcast.objects.all():
         chain = Chain()
         chain.append(podcast_update, podcast.pk)
-        chain.append(podcast_download, podcast.pk)
+        # chain.append(podcast_download, podcast.pk)
         chain.run()
 
     return HttpResponseRedirect(reverse('podcasts:index'))
@@ -49,7 +49,7 @@ def podcast_sync(request, slug):
 
     chain = Chain()
     chain.append(podcast_update, podcast.pk)
-    chain.append(podcast_download, podcast.pk)
+    # chain.append(podcast_download, podcast.pk)
     chain.run()
 
     return HttpResponseRedirect(reverse('podcasts:podcast-detail', args=(slug,)))
@@ -60,10 +60,10 @@ def dummy_episode_sync(request, slug):
 
     chain = Chain()
     chain.append(podcast_update, podcast.pk)
-    chain.append(podcast_download, podcast.pk)
+    # chain.append(podcast_download, podcast.pk)
     chain.run()
 
     # return FileResponse(open('media/dummy.m4a', 'rb'), as_attachment=True,
     #                     content_type='audio/mpeg')
 
-    return HttpResponse("Sucessfully Updated Podcast", status=418)
+    return HttpResponse(f"Sucessfully Updated Podcast {podcast.name}", status=418)
