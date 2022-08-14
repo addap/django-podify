@@ -1,6 +1,6 @@
 # from https://www.caktusgroup.com/blog/2017/03/14/production-ready-dockerfile-your-python-django-app/
 # and https://testdriven.io/blog/dockerizing-django-with-postgres-gunicorn-and-nginx/
-FROM python:3.8-slim as builder
+FROM python:3.10-slim as builder
 
 
 # Copy your application code to the container (make sure you create a .dockerignore file if any large files or directories should be excluded)
@@ -26,7 +26,7 @@ RUN set -ex \
     && rm -rf /var/lib/apt/lists/*
 
 
-FROM python:3.8-slim
+FROM python:3.10-slim
 
 # Install packages needed to run your application (not build deps):
 #   mime-support -- for mime types when serving static files
@@ -40,7 +40,7 @@ RUN set -ex \
     ffmpeg \
     redis-tools \
     " \
-#    && seq 1 8 | xargs -I{} mkdir -p /usr/share/man/man{} \
+    #    && seq 1 8 | xargs -I{} mkdir -p /usr/share/man/man{} \
     && apt-get update && apt-get install -y --no-install-recommends $RUN_DEPS \
     && rm -rf /var/lib/apt/lists/*
 
