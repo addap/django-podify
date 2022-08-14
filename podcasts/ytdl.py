@@ -1,4 +1,8 @@
 import yt_dlp
+import requests
+from PIL import Image
+from django.core.files.base import ContentFile
+from io import BytesIO
 
 
 def get_playlist_info(playlist_url):
@@ -17,3 +21,15 @@ def get_episode_info(episode_url):
 
     del info['automatic_captions']
     return info
+
+
+def get_episode_thumbnail(info):
+    r = requests.get(info['thumbnail'])
+    # TODO better way to convert to PNG?
+    thumb = ContentFile(r.content)
+    img = Image.open(thumb)
+    img = img.convert(mode='RGBA')
+    thumbnail = BytesIO()
+    img.save(thumbnail, format="png")
+
+    return thumbnail

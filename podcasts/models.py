@@ -2,22 +2,18 @@ import os
 import os.path
 from datetime import timedelta, datetime
 from time import strptime
-from io import BytesIO
-from PIL import Image
 
 import mutagen.id3
 import mutagen.mp3
 
-import requests
 import yt_dlp
 from django.core.files import File
-from django.core.files.base import ContentFile
 from django.db import models
 from django.utils.text import slugify
 from django.utils import timezone
 from django.utils.crypto import get_random_string
 from django_q.tasks import async_task, delete_group
-from .ytdl import get_episode_info, get_playlist_info
+from .ytdl import get_episode_info, get_episode_thumbnail, get_playlist_info
 
 from podify.settings import MEDIA_ROOT
 from .tasks import episode_update
@@ -190,19 +186,14 @@ class Episode(models.Model):
             *strptime(info['upload_date'], "%Y%m%d")[0:6], tzinfo=tz)
         self.duration = timedelta(seconds=int(info['duration']))
 
-        r = requests.get(info['thumbnail'])
-        # TODO better way to convert to JPG?
-        thumb = ContentFile(r.content)
-        img = Image.open(thumb)
-        thumb_jpg = BytesIO()
-        img.save(thumb_jpg, format="jpeg")
-        self.image.save(f'{self.slug}.jpg', thumb_jpg, save=False)
+        thumbnail = get_episode_thumbnail(info)
+        self.image.save(f'{self.slug}.png', thumbnail, save=False)
 
         # also set the podcast's image every time I add a new episode. This will probably set it nondeterministically if I
         # add multiple episodes but I don't care since I just want any picture
         if self.podcast.image:
             self.podcast.image.delete(save=False)
-        self.podcast.image.save(f'{self.podcast.slug}.jpg', thumb_jpg)
+        self.podcast.image.save(f'{self.podcast.slug}.png', thumbnail)
 
         # download mp3
         filename_relative = episode_media_path(self, f'{self.slug}.m4a')
