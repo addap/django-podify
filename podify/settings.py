@@ -103,8 +103,8 @@ Q_CLUSTER = {
     'catch_up': False,
     'redis': env('REDIS_URL'),
     'sync': env('REDIS_SYNC'),
-    'timeout': 60,
-    'retry': 120,
+    'timeout': 600,
+    'retry': 1200,
 }
 
 # Password validation
@@ -160,8 +160,16 @@ LOGGING = {
         'console': {
             'level': 'INFO',
             'class': 'logging.StreamHandler',
+            'formatter': 'simple',
         },
     },
+    'formatters': {
+        'simple': {
+            'format': '{asctime} {levelname} {filename}:{lineno}> {message}',
+            'style': '{',
+        },
+    },
+
     'loggers': {
         '': {
             'level': 'INFO',
