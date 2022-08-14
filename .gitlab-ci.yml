@@ -1,6 +1,6 @@
 stages:
+  - debug 
   - test
-  - debug
   - publish
 
 test-podify:
