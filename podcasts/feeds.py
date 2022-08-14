@@ -1,10 +1,10 @@
 from django.contrib.syndication.views import Feed
 from django.http.request import HttpRequest
 from django.urls import reverse
+from django.utils import timezone
 from django.utils.feedgenerator import Rss201rev2Feed
 from django_q.tasks import Chain
 from datetime import timedelta, datetime
-import pytz
 from django.utils.timezone import get_current_timezone_name
 
 from .models import Podcast, Episode
@@ -110,8 +110,7 @@ class PodcastFeed(Feed):
             link=dummy_url,
             mp3_url=dummy_url,
             mp3_size=0,
-            pub_date=datetime.now(tz=pytz.timezone(
-                get_current_timezone_name())),
+            pub_date=timezone.now(),
             description="Trigger a download of this episode to sync the podcast server-side.\nThe download will fail with code 418.\nAfter a while, new episodes will have been downloaded to the server and you can refresh the RSS feed and download them to the phone.",
             image=None,
             duration=timedelta(seconds=0)

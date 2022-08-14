@@ -7,14 +7,14 @@ from PIL import Image
 
 import mutagen.id3
 import mutagen.mp3
-import pytz
+
 import requests
 import yt_dlp
 from django.core.files import File
 from django.core.files.base import ContentFile
 from django.db import models
 from django.utils.text import slugify
-from django.utils.timezone import get_current_timezone_name
+from django.utils import timezone
 from django.utils.crypto import get_random_string
 from django_q.tasks import async_task, delete_group
 from .ytdl import get_episode_info, get_playlist_info
@@ -66,7 +66,7 @@ The data for a podcast is saved in MEDIA_ROOT/<slug>"""
         slug = f'{slugify(filename)}-{get_random_string(10)}'
         mp3name = slug + ext
         os.rename(filepath, os.path.join(pathname, mp3name))
-        pub_date = datetime.now(tz=pytz.timezone(get_current_timezone_name()))
+        pub_date = timezone.now()
         with open(os.path.join(pathname, mp3name), "rb") as f:
             audio = mutagen.mp3.MP3(f, ID3=mutagen.id3.ID3)
             duration = timedelta(seconds=audio.info.length)
@@ -92,7 +92,7 @@ The data for a podcast is saved in MEDIA_ROOT/<slug>"""
         (name, ext) = os.path.splitext(mp3.name)
         slug = f'{slugify(name)}-{get_random_string(10)}'
         mp3.name = slug + ext
-        pub_date = datetime.now(tz=pytz.timezone(get_current_timezone_name()))
+        pub_date = timezone.now()
 
         (duration, image) = audio_file_extract_info(mp3)
 
@@ -185,7 +185,7 @@ class Episode(models.Model):
         self.slug = f'{slugify(self.name)}-{get_random_string(10)}'
         self.description = info['description']
 
-        tz = pytz.timezone(get_current_timezone_name())
+        tz = timezone.get_current_timezone()
         self.pub_date = datetime(
             *strptime(info['upload_date'], "%Y%m%d")[0:6], tzinfo=tz)
         self.duration = timedelta(seconds=int(info['duration']))
