@@ -1,4 +1,7 @@
 from django.apps import AppConfig
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class PodcastsConfig(AppConfig):
@@ -8,3 +11,4 @@ class PodcastsConfig(AppConfig):
     def ready(self):
         # import signal connections
         import podcasts.signals
+        logger.info("Starting Podify")

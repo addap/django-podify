@@ -1,22 +1,25 @@
+from io import BytesIO
+import logging
 import os
 import os.path
-from datetime import timedelta, datetime
+from datetime import datetime, timedelta
 from time import strptime
 
 import mutagen.id3
 import mutagen.mp3
-
 import yt_dlp
 from django.core.files import File
 from django.db import models
-from django.utils.text import slugify
 from django.utils import timezone
 from django.utils.crypto import get_random_string
+from django.utils.text import slugify
 from django_q.tasks import async_task, delete_group
+from podify.settings import MEDIA_ROOT
+
+from .tasks import episode_update
 from .ytdl import get_episode_info, get_episode_thumbnail, get_playlist_info
 
-from podify.settings import MEDIA_ROOT
-from .tasks import episode_update
+logger = logging.getLogger(__name__)
 
 
 def podcast_media_path(instance, filename):
@@ -33,7 +36,7 @@ def audio_file_extract_info(mp3):
     # save thumbnail separately
     try:
         b = audio.tags.getall('APIC')[0].data
-        image = File(BytesIO(b), name=f'{name}-thumbnail')
+        image = File(BytesIO(b), name=f'{mp3.name}-thumbnail')
     except:
         image = None
 
@@ -164,13 +167,13 @@ class Episode(models.Model):
 
     def update(self):
         if not self.url:
-            print(f'Episode {self.id} does not have a URL.')
+            logger.warn(f'Episode {self.id} does not have a URL.')
             return
         if self.invalid:
-            print(f'Episode {self.id} is invalid.')
+            logger.warn(f'Episode {self.id} is invalid.')
             return
         if self.initialized:
-            print(
+            logger.warn(
                 f'Episode {self.id} is already initialized {self.initialized}.')
             return
 
@@ -215,9 +218,7 @@ class Episode(models.Model):
                 ydl.download(self.url)
         except yt_dlp.DownloadError as e:
             # todo log properly
-            with open("download-error", "w") as f:
-                f.write(str(e))
-            print(e)
+            logger.error(e)
             self.invalid = True
             self.save()
             return

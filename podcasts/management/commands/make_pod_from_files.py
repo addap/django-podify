@@ -1,3 +1,4 @@
+import logging
 import os
 
 from django.core.management.base import BaseCommand, CommandError
@@ -6,6 +7,8 @@ from podify.settings import MEDIA_ROOT
 
 from podcasts.models import Podcast
 from podcasts.tasks import podcast_update
+
+logger = logging.getLogger(__name__)
 
 
 class Command(BaseCommand):
@@ -24,7 +27,7 @@ class Command(BaseCommand):
             if '.makepodcast' in media_files:
                 media_files.remove('.makepodcast')
 
-                print(f"making a podcast out of {root}")
+                logger.info(f"making a podcast out of {root}")
                 # create podcast
                 p = Podcast.objects.create(
                     name=media_dir, slug=slugify(media_dir))
