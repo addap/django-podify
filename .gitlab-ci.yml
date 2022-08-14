@@ -1,5 +1,4 @@
 stages:
-  - debug 
   - test
   - publish
 
@@ -13,12 +12,6 @@ test-podify:
     - python -c "import zoneinfo; print(zoneinfo.available_timezones())"
     - python manage.py test
 
-debug-ci: 
-  stage: debug
-  script:
-    - echo stage "$CI_JOB_STAGE" 
-    - echo "$CI_COMMIT_TAG"
-    
 publish-podify:
   stage: publish
   image: docker:20.10.16
