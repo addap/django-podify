@@ -27,7 +27,23 @@ def podcast_media_path(instance, filename):
     return os.path.join(instance.slug, filename)
 
 
-# Create your models here.
+def audio_file_extract_info(mp3):
+    try:
+        audio = mutagen.mp3.MP3(mp3, ID3=mutagen.id3.ID3)
+        duration = timedelta(seconds=audio.info.length)
+    except:
+        duration = timedelta(seconds=0)
+
+    # save thumbnail separately
+    try:
+        b = audio.tags.getall('APIC')[0].data
+        image = File(BytesIO(b), name=f'{name}-thumbnail')
+    except:
+        image = None
+
+    return (duration, image)
+
+
 class Podcast(models.Model):
     """Model for a podcast
 The data for a podcast is saved in MEDIA_ROOT/<slug>"""
@@ -77,14 +93,8 @@ The data for a podcast is saved in MEDIA_ROOT/<slug>"""
         slug = f'{slugify(name)}-{get_random_string(10)}'
         mp3.name = slug + ext
         pub_date = datetime.now(tz=pytz.timezone(get_current_timezone_name()))
-        audio = mutagen.mp3.MP3(mp3, ID3=mutagen.id3.ID3)
-        duration = timedelta(seconds=audio.info.length)
-        # save thumbnail separately
-        try:
-            b = audio.tags.getall('APIC')[0].data
-            image = File(BytesIO(b), name=f'{name}-thumbnail')
-        except:
-            image = None
+
+        (duration, image) = audio_file_extract_info(mp3)
 
         self.episode_set.create(
             name=name,
@@ -93,9 +103,7 @@ The data for a podcast is saved in MEDIA_ROOT/<slug>"""
             pub_date=pub_date,
             image=image,
             duration=duration,
-            # todo change to initialized
-            downloaded=True,
-            updated=True)
+            initialized=True)
 
     def update(self):
         """Collect all episodes that we should have and update them in turn."""

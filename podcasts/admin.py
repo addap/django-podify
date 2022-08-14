@@ -33,14 +33,15 @@ class PodcastAdmin(admin.ModelAdmin):
     inlines = [EpisodeInline]
     list_display = ('name', 'rss_link')
 
-    def save_model(self, request, obj, form, change):
+    def save_model(self, request, obj: Podcast, form, change):
         # save once so that we can create related episodes
         obj.save()
         form = PodcastModelForm(request.POST, request.FILES)
-        # TODO fix
-        # if form.is_valid():
-        #     for file in form.cleaned_data['audio_upload']:
-        #         obj.add_episode_upload_mp3(file)
+        # TODO add reference to django docs
+        files = request.FILES.getlist('audio_upload')
+        if form.is_valid():
+            for file in files:
+                obj.add_episode_upload_mp3(file)
 
         super().save_model(request, obj, form, change)
 

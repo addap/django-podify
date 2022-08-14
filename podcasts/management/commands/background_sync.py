@@ -1,8 +1,8 @@
 from django.core.management.base import BaseCommand, CommandError
-from django_q.tasks import Chain
+from django_q.tasks import async_task
 
 from podcasts.models import Podcast
-from podcasts.tasks import podcast_update, podcast_download
+from podcasts.tasks import podcast_update
 
 
 class Command(BaseCommand):
@@ -21,11 +21,7 @@ class Command(BaseCommand):
 
         for podcast in podcast_set:
             try:
-                chain = Chain()
-                chain.append(podcast_update, podcast.pk)
-                # if download:
-                #     chain.append(podcast_download, podcast.pk)
-                chain.run()
+                async_task(podcast_update, podcast.pk)
             # except Podcast.DoesNotExist:
             #     raise CommandError(f"Podcast with id {podcast_id} does not exist")
             except ValueError as err:

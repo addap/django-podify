@@ -5,7 +5,7 @@ from django.utils.text import slugify
 from podify.settings import MEDIA_ROOT
 
 from podcasts.models import Podcast
-from podcasts.tasks import podcast_update, podcast_download
+from podcasts.tasks import podcast_update
 
 
 class Command(BaseCommand):
@@ -19,17 +19,19 @@ class Command(BaseCommand):
         # the assumption is that these directories only contain a single .makepodcast file and the rest is audio files
         media, media_dirs, _ = next(os.walk(MEDIA_ROOT))
         for media_dir in media_dirs:
-            root, _, media_files = next(os.walk(os.path.join(media, media_dir)))
+            root, _, media_files = next(
+                os.walk(os.path.join(media, media_dir)))
             if '.makepodcast' in media_files:
                 media_files.remove('.makepodcast')
 
                 print(f"making a podcast out of {root}")
                 # create podcast
-                p = Podcast.objects.create(name=media_dir, slug=slugify(media_dir))
+                p = Podcast.objects.create(
+                    name=media_dir, slug=slugify(media_dir))
                 if '.description' in media_files:
                     with open(os.path.join(root, ".description"), "r") as desc:
                         p.description = desc.read()
-                    media_files.remove('.description') 
+                    media_files.remove('.description')
 
                 if 'image.jpg' in media_files:
                     p.image = os.path.join(media_dir, 'image.jpg')
