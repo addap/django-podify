@@ -223,6 +223,8 @@ class Episode(models.Model):
             self.save()
             return
 
+        # Use the relativ path (<podcast-slug>/<episode-slug>.mp3) since otherwise the mp3.url breaks.
+        # mp3.url just prepends /media infront of it which does not work with an absolute path.
         self.mp3 = filename_relative
         self.initialized = True
 
