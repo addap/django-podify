@@ -223,7 +223,7 @@ class Episode(models.Model):
             self.save()
             return
 
-        self.mp3 = filename
+        self.mp3 = filename_relative
         self.initialized = True
 
         self.save()
