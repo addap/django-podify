@@ -15,6 +15,7 @@ def create_podcast(name, url="") -> Podcast:
 
 class PodcastModelTests(TestCase):
     playlist_url: str = "https://www.youtube.com/playlist?list=PL-PEOyl2c0AN3e2ZRSXcLrye7k_M0C9cW"
+    episode_url: str = "https://www.youtube.com/watch?v=K61k1Rj0uhI"
     p1: Podcast = None
 
     def tearDown(self):
@@ -52,6 +53,48 @@ class PodcastModelTests(TestCase):
         response = self.client.get(dummy_url)
 
         self.assertEqual(418, response.status_code)
+
+        # wait 30s until downloads are finished
+        result_group(self.p1.slug, wait=30_000)
+
+        self.assertEqual(self.p1.episode_set.count(), 1)
+
+        for e in self.p1.episode_set.all():
+            self.assert_(not e.invalid)
+            self.assert_(e.initialized)
+            self.assert_(e.downloaded)
+            self.assert_(e.mp3.url.startswith(
+                f'/media/{self.p1.slug}/{e.slug}'))
+
+    def test_remove_episode(self):
+        self.p1 = create_podcast("Normal Podcast", self.playlist_url)
+
+        self.p1.episode_set.create(url=self.episode_url, from_playlist=False)
+        self.assertEqual(self.p1.episode_set.count(), 1)
+
+        # should not delete the episode above
+        self.p1.update()
+
+        # wait 30s until downloads are finished
+        result_group(self.p1.slug, wait=30_000)
+
+        self.assertEqual(self.p1.episode_set.count(), 2)
+
+        for e in self.p1.episode_set.all():
+            self.assert_(not e.invalid)
+            self.assert_(e.initialized)
+            self.assert_(e.downloaded)
+            self.assert_(e.mp3.url.startswith(
+                f'/media/{self.p1.slug}/{e.slug}'))
+
+    def test_remove_episode2(self):
+        self.p1 = create_podcast("Normal Podcast", self.playlist_url)
+
+        self.p1.episode_set.create(url=self.episode_url, from_playlist=True)
+        self.assertEqual(self.p1.episode_set.count(), 1)
+
+        # should not delete the episode above
+        self.p1.update()
 
         # wait 30s until downloads are finished
         result_group(self.p1.slug, wait=30_000)

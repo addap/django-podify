@@ -4,6 +4,7 @@ import os
 import os.path
 from datetime import datetime, timedelta
 from time import strptime
+from typing import List
 
 import mutagen.id3
 import mutagen.mp3
@@ -112,17 +113,26 @@ The data for a podcast is saved in MEDIA_ROOT/<slug>"""
         info = get_playlist_info(self.playlist_url)
 
         self.description = info['description']
-        for episode_info in info['entries']:
-            if self.episode_set.filter(url=episode_info['url']).exists():
-                continue
-            self.episode_set.create(url=episode_info['url'])
+        playlist_urls: List[str] = [entry['url'] for entry in info['entries']]
 
+        # delete episodes that are not in the playlist anymore
+        for episode in self.episode_set.filter(from_playlist=True):
+            if episode.url not in playlist_urls:
+                episode.delete()
+
+        # add new episodes that are in the playlist
+        for url in playlist_urls:
+            if self.episode_set.filter(url=url).exists():
+                continue
+            self.episode_set.create(url=url, from_playlist=True)
+
+        # update all uninitialized episodes
         delete_group(self.slug, tasks=True)
         for episode in self.episode_set.filter(invalid=False, initialized=False):
             async_task(episode_update, episode.pk, group=self.slug)
 
         self.save()
-        return f"Updated podcast {self}"
+        logger.info(f"Updated podcast {self}")
 
 
 def episode_media_path(instance, filename):
@@ -144,9 +154,11 @@ class Episode(models.Model):
     video_id = models.CharField(max_length=11, blank=True, null=True)
 
     invalid = models.BooleanField(
-        default=False, help_text='Whether there was an error with the episode. The episode will be disregarded in future operations.')
+        default=False, help_text="Whether there was an error with the episode. The episode will be disregarded in future operations.")
     initialized = models.BooleanField(
-        default=False, help_text='Whether the episode metadata & mp3 are present.')
+        default=False, help_text="Whether the episode metadata & mp3 are present.")
+    from_playlist = models.BooleanField(
+        default=False, help_text="Whether the episode is from the podcast's playlist.")
 
     # Foreign Key is associated podcast
     podcast = models.ForeignKey(Podcast, on_delete=models.CASCADE)
@@ -229,4 +241,5 @@ class Episode(models.Model):
         self.initialized = True
 
         self.save()
-        return f'Episode {self.url} ({self.id}) updated successfully '
+        logger.info(
+            f'Episode {self.url} (id: {self.id}) updated successfully.')
