@@ -3,7 +3,6 @@ from django.utils.html import format_html
 from django.urls import reverse
 from django.db.models.signals import pre_save
 from django_q.tasks import async_task
-from django_q.tasks import Chain
 
 from .models import Podcast, Episode
 from .tasks import podcast_update
@@ -12,9 +11,9 @@ from .forms import PodcastModelForm
 
 class EpisodeInline(admin.TabularInline):
     model = Episode
-    fields = ['name', 'url', 'initialized',
-              'pub_date', 'duration', 'invalid', ]
-    readonly_fields = ('initialized', 'pub_date', 'duration',)
+    fields = ['name', 'url', 'initialized', 'pub_date',
+              'duration', 'from_playlist', 'invalid', ]
+    readonly_fields = ('initialized', 'from_playlist', 'pub_date', 'duration',)
     extra = 0
 
 
@@ -37,7 +36,7 @@ class PodcastAdmin(admin.ModelAdmin):
         # save once so that we can create related episodes
         obj.save()
         form = PodcastModelForm(request.POST, request.FILES)
-        # TODO add reference to django docs
+        # from https://docs.djangoproject.com/en/4.1/topics/http/file-uploads/#uploading-multiple-files
         files = request.FILES.getlist('audio_upload')
         if form.is_valid():
             for file in files:

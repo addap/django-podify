@@ -3,12 +3,9 @@ from django.http.request import HttpRequest
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.feedgenerator import Rss201rev2Feed
-from django_q.tasks import Chain
-from datetime import timedelta, datetime
-from django.utils.timezone import get_current_timezone_name
+from datetime import timedelta
 
 from .models import Podcast, Episode
-from .tasks import podcast_update
 
 
 class iTunesFeed(Rss201rev2Feed):
