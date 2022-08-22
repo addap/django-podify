@@ -105,8 +105,7 @@ The data for a podcast is saved in MEDIA_ROOT/<slug>"""
             duration=duration,
             initialized=True)
 
-    def update(self):
-        """Collect all episodes that we should have and update them in turn."""
+    def update_playlist(self):
         if not self.playlist_url:
             return
 
@@ -125,6 +124,10 @@ The data for a podcast is saved in MEDIA_ROOT/<slug>"""
             if self.episode_set.filter(url=url).exists():
                 continue
             self.episode_set.create(url=url, from_playlist=True)
+
+    def update(self):
+        """Collect all episodes that we should have and update them in turn."""
+        self.update_playlist()
 
         # update all uninitialized episodes
         delete_group(self.slug, tasks=True)
@@ -189,7 +192,13 @@ class Episode(models.Model):
                 f'Episode {self.id} is already initialized {self.initialized}.')
             return
 
-        info = get_episode_info(self.url)
+        try:
+            info = get_episode_info(self.url)
+        except yt_dlp.DownloadError as e:
+            logger.error(e)
+            self.invalid = True
+            self.save()
+            return
 
         if not self.name:
             self.name = info['title']

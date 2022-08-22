@@ -16,6 +16,7 @@ def create_podcast(name, url="") -> Podcast:
 class PodcastModelTests(TestCase):
     playlist_url: str = "https://www.youtube.com/playlist?list=PL-PEOyl2c0AN3e2ZRSXcLrye7k_M0C9cW"
     episode_url: str = "https://www.youtube.com/watch?v=K61k1Rj0uhI"
+    deleted_episode_url: str = "https://www.youtube.com/watch?v=e67nHTbygXs"
     p1: Podcast = None
 
     def tearDown(self):
@@ -129,6 +130,20 @@ class PodcastModelTests(TestCase):
         response = self.client.get(
             reverse('podcasts:podcast-rss', kwargs={'slug': self.p1.slug}))
         self.assertEqual(response.status_code, 200)
+
+    def test_download_deleted_episode(self):
+        self.p1 = create_podcast("Normal Podcast", "")
+        self.p1.episode_set.create(url=self.deleted_episode_url)
+
+        self.p1.update()
+
+        # wait 30s until downloads are finished
+        result_group(self.p1.slug, wait=30_000)
+
+        for e in self.p1.episode_set.all():
+            self.assert_(e.invalid)
+            self.assert_(not e.initialized)
+            self.assert_(not e.downloaded)
 
     # def test_unavailable_playlist_rss(self):
     #     self.p1 = create_podcast("Podcast unavailable test",
