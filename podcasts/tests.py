@@ -16,7 +16,7 @@ def create_podcast(name, url="") -> Podcast:
 class PodcastModelTests(TestCase):
     playlist_url: str = "https://www.youtube.com/playlist?list=PL-PEOyl2c0AN3e2ZRSXcLrye7k_M0C9cW"
     episode_url: str = "https://www.youtube.com/watch?v=K61k1Rj0uhI"
-    deleted_episode_url: str = "https://www.youtube.com/watch?v=e67nHTbygXs"
+    deleted_episode_url: str = "https://www.youtube.com/watch?v=73rJWnkxlq4"
     p1: Podcast = None
 
     def tearDown(self):
