@@ -3,6 +3,9 @@ set -e
 
 echo `whoami`
 
+echo 'collect static files'
+python manage.py collectstatic --noinput
+
 until redis-cli -u $REDIS_URL ping; do
     >&2 echo "Redis is unavailable - sleeping"
     sleep 1
@@ -15,5 +18,6 @@ if [ "x$DJANGO_MANAGEPY_MIGRATE" = "xon" ]; then
 fi
 
 python manage.py qcluster &
+
 
 exec "$@"

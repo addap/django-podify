@@ -6,6 +6,7 @@ test-podify:
   stage: test
   image: python:3.10
   script:
+    - cd web/
     - apt-get update -qy
     - apt-get install -y ffmpeg
     - pip install -r requirements.txt
@@ -22,6 +23,7 @@ publish-podify:
   before_script:
     - docker info
   script:
+    - cd web/
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
     - docker build -t $IMAGE_TAG .
     - docker push $IMAGE_TAG

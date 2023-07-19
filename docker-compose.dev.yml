@@ -3,16 +3,29 @@ version: '3.4'
 services:
   web:
     image: registry.gitlab.com/addapp/django-podify
-    build: .
+    build: ./web/
     env_file:
       - .env.dockerdev
-    ports:
-      - "8000:8000"
     volumes:
-      - podify_db_dev:/code/db
-      - podify_media_dev:/code/media
+      - uwsgi_data:/code/uwsgi
+      - media:/code/media
+      - static:/code/static
+      - db:/code/db
   redis:
     image: redis:7
+  nginx:
+    image: nginx:stable
+    volumes:
+      - uwsgi_data:/tmp/uwsgi
+      - media:/var/www/podify/media
+      - static:/var/www/podify/static
+      - ./nginx.conf:/etc/nginx/conf.d/podify.conf:ro
+    ports:
+      - "8000:8000"
+    depends_on:
+      - web
 volumes:
-  podify_db_dev:
-  podify_media_dev:
+  uwsgi_data:
+  media:
+  static:
+  db:
