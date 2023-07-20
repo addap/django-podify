@@ -2,17 +2,40 @@ version: '3.4'
 
 services:
   web:
-    image: registry.gitlab.com/addapp/django-podify:v1.4.4
+    image: registry.gitlab.com/addapp/django-podify:2.3.0
+    container_name: podify
+    restart: unless-stopped    
     env_file:
       - .env.prod
-    ports:
-      - "8000:8000"
+    networks:
+      - default
     volumes:
+      - uwsgi_data:/code/uwsgi
       - podify_db:/code/db
       - podify_media:/code/media
+      - podify_static:/code/static
   redis:
     image: redis:7
+    networks:
+      - default
+  nginx:
+    image: nginx:stable
+    networks:
+      - webproxy
+    volumes:
+      - uwsgi_data:/tmp/uwsgi
+      - podify_media:/var/www/podify/media
+      - podify_static:/var/www/podify/static
+      - ./nginx.conf:/etc/nginx/conf.d/podify.conf:ro
+    depends_on:
+      - web
+
 volumes:
   podify_db:
   podify_media:
-  
+  podify_static:
+  uwsgi_data:
+networks:
+  webproxy:
+    external:
+      name: webproxy
